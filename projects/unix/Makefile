@@ -29,6 +29,8 @@ ifeq ("$(UNAME)","Linux")
   OS = LINUX
   SO_EXTENSION = so
   SHARED = -shared
+  CFLAGS += -D__linux__
+  CPPFLAGS += -D___linux__
 endif
 ifeq ("$(UNAME)","linux")
   OS = LINUX
@@ -123,10 +125,16 @@ endif
 # base CFLAGS, LDLIBS, and LDFLAGS
 OPTFLAGS ?= -O3 -flto
 WARNFLAGS ?= -Wall -Wno-unused-function
-CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -fvisibility=hidden -I../../src -I../../src/Glitch64/inc -DGCC
-CXXFLAGS += -fvisibility-inlines-hidden -std=gnu++0x
+CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -fvisibility=hidden -I../../src -I../../src/Glitch64/inc
+CXXFLAGS += -fvisibility-inlines-hidden
 LDFLAGS += $(SHARED)
 BOOST_SUFFIX ?=
+
+# overrrides for EMSCRIPTEN platform
+ifneq ($(EMSCRIPTEN),1)
+  CFLAGS += -DGCC
+  CXXFLAGS += -std=gnu++0x
+endif
 
 ifeq ($(CPU), X86)
   CFLAGS +=  -mmmx -msse
@@ -287,8 +295,13 @@ endif
 endif
 
 # set base program pointers and flags
+ifeq ($(EMSCRIPTEN),1)
++CC        ?= $(CROSS_COMPILE)gcc
++CXX       ?= $(CROSS_COMPILE)g++
+else
 CC        = $(CROSS_COMPILE)gcc
 CXX       = $(CROSS_COMPILE)g++
+endif
 RM       ?= rm -f
 INSTALL  ?= install
 MKDIR ?= mkdir -p
@@ -299,7 +312,7 @@ LINK.o = $(Q_LD)$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 # set special flags for given Makefile parameters
 ifeq ($(DEBUG),1)
   CFLAGS += -g
-  INSTALL_STRIP_FLAG ?= 
+  INSTALL_STRIP_FLAG ?=
 else
   ifneq ($(OS),OSX)
     INSTALL_STRIP_FLAG ?= -s
@@ -389,12 +402,15 @@ SOURCE += \
 	$(SRCDIR)/GlideHQ/tc-1.1+/wrapper.c \
 	$(SRCDIR)/GlideHQ/tc-1.1+/texstore.c
 
-CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
+#CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
 LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
+ifneq ($(EMSCRIPTEN),1)
+  CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
+endif
 
   ifeq ($(TXCDXTN), 1)
     CPPFLAGS += -DTXCDXTN_EXTERNAL
-  else 
+  else
     SOURCE += \
 	$(SRCDIR)/GlideHQ/tc-1.1+/s2tc/s2tc_algorithm.cpp \
 	$(SRCDIR)/GlideHQ/tc-1.1+/s2tc/s2tc_libtxc_dxtn.cpp
@@ -406,7 +422,7 @@ SOURCE += $(SRCDIR)/Glide64/osal_dynamiclib_win32.c
 else
 SOURCE += $(SRCDIR)/Glide64/osal_dynamiclib_unix.c
 endif
- 
+
 
 
 # generate a list of object files build, make a temporary directory for them
