@@ -178,7 +178,7 @@ SHADER_HEADER
 "attribute highp vec4 aMultiTexCoord1;                          \n"
 "attribute float aFog;                                          \n"
 "uniform vec3 vertexOffset;                                     \n" //Moved some calculations from grDrawXXX to shader
-"uniform vec4 textureSizes;                                     \n" 
+"uniform vec4 textureSizes;                                     \n"
 "uniform vec3 fogModeEndScale;                                  \n" //0 = Mode, 1 = gl_Fog.end, 2 = gl_Fog.scale
 "uniform mat4 rotation_matrix;                                  \n"
 SHADER_VARYING
@@ -206,9 +206,9 @@ SHADER_VARYING
 "  float f = (fogModeEndScale[1] - fogV) * fogModeEndScale[2];              \n"
 "  f = clamp(f, 0.0, 1.0);                                      \n"
 "  gl_TexCoord[0].b = f;                                                    \n"
-"  gl_TexCoord[2].b = aVertex.x;                                            \n" 
-"  gl_TexCoord[2].a = aVertex.y;                                            \n" 
-"}                                                                          \n" 
+"  gl_TexCoord[2].b = aVertex.x;                                            \n"
+"  gl_TexCoord[2].a = aVertex.y;                                            \n"
+"}                                                                          \n"
 ;
 
 static char fragment_shader_color_combiner[1024];
@@ -328,7 +328,7 @@ void init_combiner()
   char *fragment_shader;
   int log_length;
 
-#ifndef ANDROID
+#if (!ANDROID) && (!EMSCRIPTEN)
   // depth shader
   fragment_depth_shader_object = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -371,7 +371,11 @@ void init_combiner()
   // depth program
   program_object = glCreateProgram();
   program_object_depth = program_object;
+#if (!ANDROID) && (!EMSCRIPTEN)
   glAttachShader(program_object, fragment_depth_shader_object);
+#else
+  glAttachShader(program_object, fragment_shader_object);
+#endif
   glAttachShader(program_object, vertex_shader_object);
 
   glBindAttribLocation(program_object,POSITION_ATTR,"aPosition");
@@ -383,6 +387,7 @@ void init_combiner()
   glLinkProgram(program_object);
   check_link(program_object);
   glUseProgram(program_object);
+
 
   rotation_matrix_location = glGetUniformLocation(program_object, "rotation_matrix");
   set_rotation_matrix(rotation_matrix_location, settings.rotate);
@@ -554,7 +559,7 @@ void update_uniforms(shader_program_key prog)
       set_lambda();
 }
 
-void disable_textureSizes() 
+void disable_textureSizes()
 {
   int textureSizes_location = glGetUniformLocation(program_object_default,"textureSizes");
   glUniform4f(textureSizes_location,1,1,1,1);
@@ -721,7 +726,7 @@ void set_lambda()
   glUniform1f(lambda_location, lambda);
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grConstantColorValue( GrColor_t value )
 {
   LOG("grConstantColorValue(%d)\r\n", value);
@@ -746,7 +751,7 @@ grConstantColorValue( GrColor_t value )
   vbo_draw();
 
   constant_color_location = glGetUniformLocation(program_object, "constant_color");
-  glUniform4f(constant_color_location, texture_env_color[0], texture_env_color[1], 
+  glUniform4f(constant_color_location, texture_env_color[0], texture_env_color[1],
     texture_env_color[2], texture_env_color[3]);
 }
 
@@ -831,7 +836,7 @@ void writeGLSLColorFactor(int factor, int local, int need_local, int other, int 
   }
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grColorCombine(
                GrCombineFunction_t function, GrCombineFactor_t factor,
                GrCombineLocal_t local, GrCombineOther_t other,
@@ -1274,11 +1279,11 @@ void writeGLSLTextureAlphaFactor(int num_tex, int factor)
   }
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grTexCombine(
              GrChipID_t tmu,
              GrCombineFunction_t rgb_function,
-             GrCombineFactor_t rgb_factor, 
+             GrCombineFactor_t rgb_factor,
              GrCombineFunction_t alpha_function,
              GrCombineFactor_t alpha_factor,
              FxBool rgb_invert,
@@ -1310,8 +1315,8 @@ grTexCombine(
     last_afunction = alpha_function;
     last_afactor = alpha_factor;
     last_rgb_invert= rgb_invert;
-    texture0_combiner_key = rgb_function | (rgb_factor << 4) | 
-      (alpha_function << 8) | (alpha_factor << 12) | 
+    texture0_combiner_key = rgb_function | (rgb_factor << 4) |
+      (alpha_function << 8) | (alpha_factor << 12) |
       (rgb_invert << 16);
     texture0_combinera_key = 0;
     strcpy(fragment_shader_texture0, "");
@@ -1336,7 +1341,7 @@ grTexCombine(
     last_afactor = alpha_factor;
     last_rgb_invert = rgb_invert;
 
-    texture1_combiner_key = rgb_function | (rgb_factor << 4) | 
+    texture1_combiner_key = rgb_function | (rgb_factor << 4) |
       (alpha_function << 8) | (alpha_factor << 12) |
       (rgb_invert << 16);
     texture1_combinera_key = 0;
@@ -1643,7 +1648,7 @@ grAlphaTestFunction( GrCmpFnc_t function )
 
 // fog
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grFogMode( GrFogMode_t mode )
 {
   LOG("grFogMode(%d)\r\n", mode);
@@ -1691,13 +1696,13 @@ guFogGenerateLinear(GrFog_t *fogtable,
   fogEnd = farZ / 255.0f;
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grFogTable( const GrFog_t ft[] )
 {
   LOG("grFogTable()\r\n");
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grFogColorValue( GrColor_t fogcolor )
 {
   LOG("grFogColorValue(%x)\r\n", fogcolor);
@@ -1720,12 +1725,12 @@ grFogColorValue( GrColor_t fogcolor )
     display_warning("grFogColorValue: unknown color format : %x", lfb_color_fmt);
   }
 
-  //glFogfv(GL_FOG_COLOR, color); 
+  //glFogfv(GL_FOG_COLOR, color);
 }
 
 // chroma
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grChromakeyMode( GrChromakeyMode_t mode )
 {
   LOG("grChromakeyMode(%d)\r\n", mode);
@@ -1743,7 +1748,7 @@ grChromakeyMode( GrChromakeyMode_t mode )
   need_to_compile = 1;
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grChromakeyValue( GrColor_t value )
 {
   LOG("grChromakeyValue(%x)\r\n", value);
@@ -1842,7 +1847,7 @@ grStippleMode( GrStippleMode_t mode )
   need_to_compile = 1;
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grColorCombineExt(GrCCUColor_t a, GrCombineMode_t a_mode,
                   GrCCUColor_t b, GrCombineMode_t b_mode,
                   GrCCUColor_t c, FxBool c_invert,
@@ -1853,7 +1858,7 @@ grColorCombineExt(GrCCUColor_t a, GrCombineMode_t a_mode,
   if (invert) display_warning("grColorCombineExt : inverted result");
   if (shift) display_warning("grColorCombineExt : shift = %d", shift);
 
-  color_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) | 
+  color_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) |
     ((b & 0x1F) << 7) | ((b_mode & 3) << 12) |
     ((c & 0x1F) << 14) | ((c_invert & 1) << 19) |
     ((d & 0x1F) << 20) | ((d_invert & 1) << 25);
@@ -2035,7 +2040,7 @@ grAlphaCombineExt(GrACUColor_t a, GrCombineMode_t a_mode,
   if (invert) display_warning("grAlphaCombineExt : inverted result");
   if (shift) display_warning("grAlphaCombineExt : shift = %d", shift);
 
-  alpha_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) | 
+  alpha_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) |
     ((b & 0x1F) << 7) | ((b_mode & 3) << 12) |
     ((c & 0x1F) << 14) | ((c_invert & 1) << 19) |
     ((d & 0x1F) << 20) | ((d_invert & 1) << 25);
@@ -2176,7 +2181,7 @@ grAlphaCombineExt(GrACUColor_t a, GrCombineMode_t a_mode,
   need_to_compile = 1;
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grTexColorCombineExt(GrChipID_t       tmu,
                      GrTCCUColor_t a, GrCombineMode_t a_mode,
                      GrTCCUColor_t b, GrCombineMode_t b_mode,
@@ -2195,7 +2200,7 @@ grTexColorCombineExt(GrChipID_t       tmu,
 
   if(num_tex == 0)
   {
-    texture0_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) | 
+    texture0_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) |
       ((b & 0x1F) << 7) | ((b_mode & 3) << 12) |
       ((c & 0x1F) << 14) | ((c_invert & 1) << 19) |
       ((d & 0x1F) << 20) | ((d_invert & 1) << 25);
@@ -2204,7 +2209,7 @@ grTexColorCombineExt(GrChipID_t       tmu,
   }
   else
   {
-    texture1_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) | 
+    texture1_combiner_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) |
       ((b & 0x1F) << 7) | ((b_mode & 3) << 12) |
       ((c & 0x1F) << 14) | ((c_invert & 1) << 19) |
       ((d & 0x1F) << 20) | ((d_invert & 1) << 25);
@@ -2541,7 +2546,7 @@ grTexColorCombineExt(GrChipID_t       tmu,
   need_to_compile = 1;
 }
 
-FX_ENTRY void FX_CALL 
+FX_ENTRY void FX_CALL
 grTexAlphaCombineExt(GrChipID_t       tmu,
                      GrTACUColor_t a, GrCombineMode_t a_mode,
                      GrTACUColor_t b, GrCombineMode_t b_mode,
@@ -2560,14 +2565,14 @@ grTexAlphaCombineExt(GrChipID_t       tmu,
 
   if(num_tex == 0)
   {
-    texture0_combinera_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) | 
+    texture0_combinera_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) |
       ((b & 0x1F) << 7) | ((b_mode & 3) << 12) |
       ((c & 0x1F) << 14) | ((c_invert & 1) << 19) |
       ((d & 0x1F) << 20) | ((d_invert & 1) << 25);
   }
   else
   {
-    texture1_combinera_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) | 
+    texture1_combinera_key = 0x80000000 | (a & 0x1F) | ((a_mode & 3) << 5) |
       ((b & 0x1F) << 7) | ((b_mode & 3) << 12) |
       ((c & 0x1F) << 14) | ((c_invert & 1) << 19) |
       ((d & 0x1F) << 20) | ((d_invert & 1) << 25);
