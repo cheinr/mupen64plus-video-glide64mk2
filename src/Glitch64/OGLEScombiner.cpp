@@ -32,6 +32,10 @@
 #include "../Glide64/winlnxdefs.h"
 #include "../Glide64/rdp.h" // for settings
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 void vbo_draw();
 
 static int fct[4], source0[4], operand0[4], source1[4], operand1[4], source2[4], operand2[4];
@@ -313,8 +317,34 @@ void init_combiner()
   glActiveTexture(GL_TEXTURE0);
 
   // creating a fake texture
+#if !EMSCRIPTEN
   glBindTexture(GL_TEXTURE_2D, default_texture);
   glTexImage2D(GL_TEXTURE_2D, 0, 3, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+#else
+  EM_ASM_INT({
+    var id = $0|0;
+    if(!Module.texHandles)
+    {
+      Module.texHandles = {};
+    }
+    var handle = 0;
+    if(!Module.texHandles[id])
+    {
+        handle = GLctx.createTexture();
+        Module.texHandles[id] = handle;
+    }else{
+      handle = Module.texHandles[id];
+    }
+    if(handle)
+    {
+      GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+    }else{
+      console.error("OGL returned texture handle ",handle," for id: ",id);
+    }
+  },
+    default_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+#endif
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -1806,8 +1836,34 @@ static void setPattern()
     }
   }
   glActiveTexture(GL_TEXTURE2);
+#if (!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, 33*1024*1024);
   glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+#else
+EM_ASM_INT({
+  var id = $0|0;
+  if(!Module.texHandles)
+  {
+    Module.texHandles = {};
+  }
+  var handle = 0;
+  if(!Module.texHandles[id])
+  {
+      handle = GLctx.createTexture();
+      Module.texHandles[id] = handle;
+  }else{
+    handle = Module.texHandles[id];
+  }
+  if(handle)
+  {
+    GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+  }else{
+    console.error("OGL returned texture handle ",handle," for id: ",id);
+  }
+},
+  33*1024*1024);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+#endif
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }

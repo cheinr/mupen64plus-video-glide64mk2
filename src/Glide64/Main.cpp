@@ -49,6 +49,7 @@
 #include "FBtoScreen.h"
 #include "DepthBufferRender.h"
 
+
 #if defined(__GNUC__)
 #include <sys/time.h>
 #elif defined(__MSC__)
@@ -1348,10 +1349,12 @@ int InitGfx ()
   grBufferSwap (0);
   grBufferClear (0, 0, 0xFFFF);
   grDepthMask (FXFALSE);
+#if (!EMSCRIPTEN)
   grTexFilterMode (0, GR_TEXTUREFILTER_BILINEAR, GR_TEXTUREFILTER_BILINEAR);
   grTexFilterMode (1, GR_TEXTUREFILTER_BILINEAR, GR_TEXTUREFILTER_BILINEAR);
   grTexClampMode (0, GR_TEXTURECLAMP_CLAMP, GR_TEXTURECLAMP_CLAMP);
   grTexClampMode (1, GR_TEXTURECLAMP_CLAMP, GR_TEXTURECLAMP_CLAMP);
+#endif
   grClipWindow (0, 0, settings.scr_res_x, settings.scr_res_y);
   rdp.update |= UPDATE_SCISSOR | UPDATE_COMBINE | UPDATE_ZBUF_ENABLED | UPDATE_CULL_MODE;
 

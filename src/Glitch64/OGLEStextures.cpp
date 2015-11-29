@@ -27,6 +27,10 @@
 #include "glitchmain.h"
 #include <stdio.h>
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 /* Napalm extensions to GrTextureFormat_t */
 #define GR_TEXFMT_ARGB_CMP_FXT1           0x11
 #define GR_TEXFMT_ARGB_8888               0x12
@@ -645,7 +649,32 @@ grTexDownloadMipMap( GrChipID_t tmu,
   }
 
   add_tex(startAddress+1);
+#if (!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, startAddress+1);
+#else
+EM_ASM_INT({
+  var id = $0|0;
+  if(!Module.texHandles)
+  {
+    Module.texHandles = {};
+  }
+  var handle = 0;
+  if(!Module.texHandles[id])
+  {
+      handle = GLctx.createTexture();
+      Module.texHandles[id] = handle;
+  }else{
+    handle = Module.texHandles[id];
+  }
+  if(handle)
+  {
+    GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+  }else{
+    console.error("OGL returned texture handle ",handle," for id: ",id);
+  }
+},
+  startAddress+1);
+#endif
 
   if (largest_supported_anisotropy > 1.0f)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_supported_anisotropy);
@@ -667,8 +696,32 @@ grTexDownloadMipMap( GrChipID_t tmu,
       glTexImage2D(GL_TEXTURE_2D, 0, gltexfmt, width, height, 0, glpixfmt, glpackfmt, info->data);
   }
 */
-
+#if (!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, default_texture);
+#else
+  EM_ASM_INT({
+    var id = $0|0;
+    if(!Module.texHandles)
+    {
+      Module.texHandles = {};
+    }
+    var handle = 0;
+    if(!Module.texHandles[id])
+    {
+        handle = GLctx.createTexture();
+        Module.texHandles[id] = handle;
+    }else{
+      handle = Module.texHandles[id];
+    }
+    if(handle)
+    {
+      GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+    }else{
+      console.error("OGL returned texture handle ",handle," for id: ",id);
+    }
+  },
+    default_texture);
+  #endif
 }
 
 int CheckTextureBufferFormat(GrChipID_t tmu, FxU32 startAddress, GrTexInfo *info );
