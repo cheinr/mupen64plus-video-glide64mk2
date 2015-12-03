@@ -203,8 +203,14 @@ void vbo_draw()
       console.error("******** COMPILING SHADER ************");
       // Creates vertex shader (converts 2D point position to coordinates)
       var vshader = gl.createShader(gl.VERTEX_SHADER);
-      var vshaderSource = 'attribute vec4 ppos;\n'+
-       '\nvoid main(void)\n{ gl_Position = vec4(ppos.x, ppos.y, 0.0, 1.0);}';
+      var vshaderSource = 'precision highp float;\n'+
+      'attribute vec4 a_position;\n'+
+      'attribute vec2 a_texcoord;\n'+
+      'varying vec2 v_texcoord;\n'+
+       'void main(void)\n{\n'+
+       ' gl_Position = a_position;\n'+
+       'v_texcoord = a_texcoord;\n'+
+       '}';
       gl.shaderSource(vshader, vshaderSource);
       gl.compileShader(vshader);
       if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
@@ -213,7 +219,13 @@ void vbo_draw()
 
       // Creates fragment shader (returns white color for any position)
       var fshader = gl.createShader(gl.FRAGMENT_SHADER);
-      var fshaderSource = 'void main(void)\n{gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}';
+      var fshaderSource = 'precision highp float;\n' +
+      'uniform sampler2D uSampler;\n'+
+      'varying vec2 v_texcoord;\n'+
+      'void main(void)\n{\n'+
+      //'gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n'+
+      'gl_FragColor = texture2D(uSampler, vec2(v_texcoord.s, v_texcoord.t));\n'+
+      '}';
       gl.shaderSource(fshader, fshaderSource);
       gl.compileShader(fshader);
       if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS))
@@ -243,10 +255,17 @@ void vbo_draw()
     gl.useProgram(program);
 
     // Gets address of the input 'attribute' of the vertex shader
-    var vattrib = gl.getAttribLocation(program, 'ppos');
+    var vattrib = gl.getAttribLocation(program, 'a_position');
     if(vattrib == -1)
     {alert('Error during attribute address retrieval');return;}
     gl.enableVertexAttribArray(vattrib);
+
+    var tattrib = gl.getAttribLocation(program, 'a_texcoord');
+    if(tattrib == -1)
+    {alert('Error during texture attrib address retrieval');return;}
+    gl.enableVertexAttribArray(tattrib);
+
+    gl.uniform1i(gl.getUniformLocation(program, "uSampler"), 1);
 
 
     // Initializes the vertex buffer and sets it as current one
@@ -254,9 +273,10 @@ void vbo_draw()
     gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
 
     // Puts vertices to buffer and links it to attribute variable 'ppos'
-    var vertices = new Float32Array([0.0,0.5,0.0,1.0, -0.5,-0.5,0.0,1.0, 0.5,-0.5,0.0,1.0]);
+    var vertices = new Float32Array([0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0]);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(vattrib, 4, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(vattrib, 4, gl.FLOAT, false, 6*4, 0);
+    gl.vertexAttribPointer(tattrib, 2, gl.FLOAT, false, 6*4, 0);
 
     // Draws the objext
     console.error("******** GL DRAWARRAYS ************");
