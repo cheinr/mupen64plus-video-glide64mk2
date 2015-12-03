@@ -201,19 +201,25 @@ void vbo_draw()
     {
 
       console.error("******** COMPILING SHADER ************");
+      // Creates vertex shader (converts 2D point position to coordinates)
+      var vshader = gl.createShader(gl.VERTEX_SHADER);
+      var vshaderSource = 'attribute vec4 ppos;\n'+
+       '\nvoid main(void)\n{ gl_Position = vec4(ppos.x, ppos.y, 0.0, 1.0);}';
+      gl.shaderSource(vshader, vshaderSource);
+      gl.compileShader(vshader);
+      if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
+      {alert('Error during vertex shader compilation:\n' + gl.getShaderInfoLog(vshader)); return;}
+
+
       // Creates fragment shader (returns white color for any position)
       var fshader = gl.createShader(gl.FRAGMENT_SHADER);
-      gl.shaderSource(fshader, 'void main(void)\n{gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}');
+      var fshaderSource = 'void main(void)\n{gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}';
+      gl.shaderSource(fshader, fshaderSource);
       gl.compileShader(fshader);
       if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS))
       {alert("Error during fragment shader compilation:\n" + gl.getShaderInfoLog(fshader)); return;}
 
-      // Creates vertex shader (converts 2D point position to coordinates)
-      var vshader = gl.createShader(gl.VERTEX_SHADER);
-      gl.shaderSource(vshader, 'attribute vec2 ppos; \nvoid main(void)\n{ gl_Position = vec4(ppos.x, ppos.y, 0.0, 1.0);}');
-      gl.compileShader(vshader);
-      if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
-      {alert('Error during vertex shader compilation:\n' + gl.getShaderInfoLog(vshader)); return;}
+
 
       // Creates program and links shaders to it
       var program = gl.createProgram();
@@ -248,9 +254,9 @@ void vbo_draw()
     gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
 
     // Puts vertices to buffer and links it to attribute variable 'ppos'
-    var vertices = new Float32Array([0.0,0.5,-0.5,-0.5,0.5,-0.5]);
+    var vertices = new Float32Array([0.0,0.5,0.0,1.0, -0.5,-0.5,0.0,1.0, 0.5,-0.5,0.0,1.0]);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(vattrib, 2, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(vattrib, 4, gl.FLOAT, false, 0, 0);
 
     // Draws the objext
     console.error("******** GL DRAWARRAYS ************");
