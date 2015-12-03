@@ -47,6 +47,10 @@
 #include "FBtoScreen.h"
 #include "TexCache.h"
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 static int SetupFBtoScreenCombiner(wxUint32 texture_size, wxUint32 opaque)
 {
   int tmu;
@@ -304,14 +308,19 @@ static void DrawFrameBufferToScreen256(FB_TO_SCREEN_INFO & fb_info)
 
 bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
 {
+  std::cerr<<"DrawFrameBufferToScreen"<<std::endl;
   if (fb_info.width < 200 || fb_info.size < 2)
+  {
+    std::cerr<<"DrawFrameBufferToScreen BAILING because fb_info.size wrong?"<<std::endl;
     return false;
+  }
   wxUint32 width = fb_info.lr_x - fb_info.ul_x + 1;
   wxUint32 height = fb_info.lr_y - fb_info.ul_y + 1;
   wxUint32 max_size = min(voodoo.max_tex_size, 512);
   if (width > (wxUint32)max_size || height > (wxUint32)max_size)
   {
     DrawFrameBufferToScreen256(fb_info);
+    std::cerr<<"DrawFrameBufferToScreen BAILING because size of screen is wrong?"<<std::endl;
     return true;
   }
   FRDP("DrawFrameBufferToScreen. ul_x=%d, ul_y=%d, lr_x=%d, lr_y=%d, size=%d, addr=%08lx\n", fb_info.ul_x, fb_info.ul_y, fb_info.lr_x, fb_info.lr_y, fb_info.size, fb_info.addr);
@@ -341,6 +350,11 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     t_info.aspectRatioLog2 = GR_ASPECT_LOG2_1x1;
   }
 
+#if 0 //EMSCRIPTEN
+  // foring size=3 for actual Rendering
+  fb_info.size = 3;
+#endif
+
   if (fb_info.size == 2)
   {
     wxUint16 * tex = (wxUint16*)texture_buffer;
@@ -359,18 +373,27 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
         if (idx >= bound)
           break;
         c = src[idx];
+#if 0 //EMSCRIPTEN
+        c = 0xff00ffff;
+#endif
         if (c) empty = false;
         *(dst++) = (c >> 1) | ((c&1)<<15);
       }
       dst += texwidth-width;
     }
     if (empty)
+    {
+      std::cerr<<"Bailing on FB rendering because source buffer(?) is 'empty'???"<<std::endl;
       return false;
+    }
     t_info.format = GR_TEXFMT_ARGB_1555;
     t_info.data = tex;
   }
   else
   {
+
+    std::cerr<<"DrawFrameBufferToScreen different buffer format size(3)"<<std::endl;
+
     wxUint32 * tex = (wxUint32*)texture_buffer;
     wxUint32 * dst = tex;
     wxUint32 * src = (wxUint32*)image;
@@ -386,7 +409,11 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
         if (idx >= bound)
           break;
         col = src[idx];
+#if 0 //EMSCRIPTEN
+        *(dst++) = 0xFF0FF0FF;
+#else
         *(dst++) = (col >> 8) | 0xFF000000;
+#endif
       }
       dst += texwidth-width;
     }
@@ -394,7 +421,21 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     t_info.data = tex;
   }
 
+
+
+// #if EMSCRIPTEN
+//     grTexDownloadMipMap (tmu,
+//       voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
+//       GR_MIPMAPLEVELMASK_BOTH,
+//       &t_info);
+//     grTexSource (tmu,
+//       voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
+//       GR_MIPMAPLEVELMASK_BOTH,
+//       &t_info);
+// #endif
+
   int tmu = SetupFBtoScreenCombiner(grTexTextureMemRequired(GR_MIPMAPLEVELMASK_BOTH, &t_info), fb_info.opaque);
+//#if (!EMSCRIPTEN)
   grTexDownloadMipMap (tmu,
     voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
     GR_MIPMAPLEVELMASK_BOTH,
@@ -403,12 +444,16 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
     GR_MIPMAPLEVELMASK_BOTH,
     &t_info);
+
+    tmu = SetupFBtoScreenCombiner(grTexTextureMemRequired(GR_MIPMAPLEVELMASK_BOTH, &t_info), fb_info.opaque);
+//#endif
   if (settings.hacks&hack_RE2)
   {
     DrawRE2Video(fb_info, scale);
   }
   else
   {
+    std::cerr<<"Actually drawing the buffer as two triangles!"<<std::endl;
     float ul_x = fb_info.ul_x * rdp.scale_x + rdp.offset_x;
     float ul_y = fb_info.ul_y * rdp.scale_y + rdp.offset_y;
     float lr_x = fb_info.lr_x * rdp.scale_x + rdp.offset_x;
@@ -425,6 +470,7 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     grDrawTriangle (&v[0], &v[2], &v[1]);
     grDrawTriangle (&v[2], &v[3], &v[1]);
   }
+
   return true;
 }
 

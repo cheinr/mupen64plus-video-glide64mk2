@@ -182,7 +182,7 @@ SHADER_HEADER
 "attribute highp vec4 aMultiTexCoord1;                          \n"
 "attribute float aFog;                                          \n"
 "uniform vec3 vertexOffset;                                     \n" //Moved some calculations from grDrawXXX to shader
-"uniform vec4 textureSizes;                                     \n"
+"uniform vec4 textureSizes;                                     \n" 
 "uniform vec3 fogModeEndScale;                                  \n" //0 = Mode, 1 = gl_Fog.end, 2 = gl_Fog.scale
 "uniform mat4 rotation_matrix;                                  \n"
 SHADER_VARYING
@@ -210,9 +210,9 @@ SHADER_VARYING
 "  float f = (fogModeEndScale[1] - fogV) * fogModeEndScale[2];              \n"
 "  f = clamp(f, 0.0, 1.0);                                      \n"
 "  gl_TexCoord[0].b = f;                                                    \n"
-"  gl_TexCoord[2].b = aVertex.x;                                            \n"
-"  gl_TexCoord[2].a = aVertex.y;                                            \n"
-"}                                                                          \n"
+"  gl_TexCoord[2].b = aVertex.x;                                            \n" 
+"  gl_TexCoord[2].a = aVertex.y;                                            \n" 
+"}                                                                          \n" 
 ;
 
 static char fragment_shader_color_combiner[1024];
@@ -317,7 +317,7 @@ void init_combiner()
   glActiveTexture(GL_TEXTURE0);
 
   // creating a fake texture
-#if !EMSCRIPTEN
+#if (!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, default_texture);
   glTexImage2D(GL_TEXTURE_2D, 0, 3, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
 #else
@@ -417,7 +417,6 @@ void init_combiner()
   glLinkProgram(program_object);
   check_link(program_object);
   glUseProgram(program_object);
-
 
   rotation_matrix_location = glGetUniformLocation(program_object, "rotation_matrix");
   set_rotation_matrix(rotation_matrix_location, settings.rotate);
@@ -589,7 +588,7 @@ void update_uniforms(shader_program_key prog)
       set_lambda();
 }
 
-void disable_textureSizes()
+void disable_textureSizes() 
 {
   int textureSizes_location = glGetUniformLocation(program_object_default,"textureSizes");
   glUniform4f(textureSizes_location,1,1,1,1);
@@ -756,7 +755,7 @@ void set_lambda()
   glUniform1f(lambda_location, lambda);
 }
 
-FX_ENTRY void FX_CALL
+FX_ENTRY void FX_CALL 
 grConstantColorValue( GrColor_t value )
 {
   LOG("grConstantColorValue(%d)\r\n", value);
@@ -781,7 +780,7 @@ grConstantColorValue( GrColor_t value )
   vbo_draw();
 
   constant_color_location = glGetUniformLocation(program_object, "constant_color");
-  glUniform4f(constant_color_location, texture_env_color[0], texture_env_color[1],
+  glUniform4f(constant_color_location, texture_env_color[0], texture_env_color[1], 
     texture_env_color[2], texture_env_color[3]);
 }
 
@@ -866,7 +865,7 @@ void writeGLSLColorFactor(int factor, int local, int need_local, int other, int 
   }
 }
 
-FX_ENTRY void FX_CALL
+FX_ENTRY void FX_CALL 
 grColorCombine(
                GrCombineFunction_t function, GrCombineFactor_t factor,
                GrCombineLocal_t local, GrCombineOther_t other,
@@ -1309,11 +1308,11 @@ void writeGLSLTextureAlphaFactor(int num_tex, int factor)
   }
 }
 
-FX_ENTRY void FX_CALL
+FX_ENTRY void FX_CALL 
 grTexCombine(
              GrChipID_t tmu,
              GrCombineFunction_t rgb_function,
-             GrCombineFactor_t rgb_factor,
+             GrCombineFactor_t rgb_factor, 
              GrCombineFunction_t alpha_function,
              GrCombineFactor_t alpha_factor,
              FxBool rgb_invert,
@@ -1345,8 +1344,8 @@ grTexCombine(
     last_afunction = alpha_function;
     last_afactor = alpha_factor;
     last_rgb_invert= rgb_invert;
-    texture0_combiner_key = rgb_function | (rgb_factor << 4) |
-      (alpha_function << 8) | (alpha_factor << 12) |
+    texture0_combiner_key = rgb_function | (rgb_factor << 4) | 
+      (alpha_function << 8) | (alpha_factor << 12) | 
       (rgb_invert << 16);
     texture0_combinera_key = 0;
     strcpy(fragment_shader_texture0, "");
@@ -2891,6 +2890,7 @@ grConstantColorValueExt(GrChipID_t    tmu,
                         GrColor_t     value)
 {
   int num_tex;
+  //std::cerr<<"grConstantColorValueExt "<<std::endl;
   LOG("grConstantColorValueExt(%d,%d)\r\n", tmu, value);
 
   if (tmu == GR_TMU0) num_tex = 1;

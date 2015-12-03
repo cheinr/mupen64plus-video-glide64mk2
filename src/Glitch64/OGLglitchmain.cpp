@@ -43,6 +43,10 @@
 #include <IL/il.h>
 #endif
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 extern void (*renderCallback)(int);
 
 wrapper_config config = {0, 0, 0, 0};
@@ -1387,7 +1391,10 @@ static void render_rectangle(int texture_number,
 void reloadTexture()
 {
   if (use_fbo || !render_to_texture || buffer_cleared)
+  {
+    std::cerr<<"BAILING on reloadTexture as maybe not use_fbo etc..."<<std::endl;
     return;
+  }
 
   LOG("reload texture %dx%d\n", width, height);
   //printf("reload texture %dx%d\n", width, height);
@@ -1396,7 +1403,33 @@ void reloadTexture()
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glActiveTextureARB(texture_unit);
+
+#if 1 //(!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, pBufferAddress);
+#else
+  EM_ASM_INT({
+    var id = $0|0;
+    if(!Module.texHandles)
+    {
+      Module.texHandles = {};
+    }
+    var handle = 0;
+    if(!Module.texHandles[id])
+    {
+        handle = GLctx.createTexture();
+        Module.texHandles[id] = handle;
+    }else{
+      handle = Module.texHandles[id];
+    }
+    if(handle)
+    {
+      GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+    }else{
+      console.error("OGL returned texture handle ",handle," for id: ",id);
+    }
+  },
+    pBufferAddress);
+#endif
   glDisable(GL_ALPHA_TEST);
   glDrawBuffer(current_buffer);
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1435,11 +1468,60 @@ void updateTexture()
     // nvidia cards (geforce 2 for example), unfortunatly it slows down a lot
     // on newer cards.
     //glDeleteTextures( 1, &pBufferAddress );
+#if 1 //(!EMSCRIPTEN)
     glBindTexture(GL_TEXTURE_2D, pBufferAddress);
+#else
+  EM_ASM_INT({
+    var id = $0|0;
+    if(!Module.texHandles)
+    {
+      Module.texHandles = {};
+    }
+    var handle = 0;
+    if(!Module.texHandles[id])
+    {
+        handle = GLctx.createTexture();
+        Module.texHandles[id] = handle;
+    }else{
+      handle = Module.texHandles[id];
+    }
+    if(handle)
+    {
+      GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+    }else{
+      console.error("OGL returned texture handle ",handle," for id: ",id);
+    }
+  },
+    pBufferAddress);
+#endif
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
       0, viewport_offset, width, height, 0);
-
+#if 1 //(!EMSCRIPTEN)
     glBindTexture(GL_TEXTURE_2D, default_texture);
+#else
+      EM_ASM_INT({
+        var id = $0|0;
+        if(!Module.texHandles)
+        {
+          Module.texHandles = {};
+        }
+        var handle = 0;
+        if(!Module.texHandles[id])
+        {
+            handle = GLctx.createTexture();
+            Module.texHandles[id] = handle;
+        }else{
+          handle = Module.texHandles[id];
+        }
+        if(handle)
+        {
+          GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+        }else{
+          console.error("OGL returned texture handle ",handle," for id: ",id);
+        }
+      },
+        default_texture);
+#endif
     glPopAttrib();
   }
 }

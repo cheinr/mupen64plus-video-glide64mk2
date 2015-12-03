@@ -387,7 +387,11 @@ void ReadSettings ()
     frameSkipper.setSkips( FrameSkipper::MANUAL, settings.maxframeskip );
 #endif
 
+#if EMSCRIPTEN_HACK
+  settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 0);
+#else
   settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 1);
+#endif
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
   //settings.fast_crc = (BOOL)Config_ReadInt ("fast_crc", "Fast CRC", 0);
 
@@ -409,7 +413,11 @@ void ReadSettings ()
   settings.wireframe = (BOOL)Config_ReadInt ("wireframe", "Wireframe display", 0);
   settings.wfmode = (int)Config_ReadInt ("wfmode", "Wireframe mode: 0=Normal colors, 1=Vertex colors, 2=Red only", 1, TRUE, FALSE);
 
+#if EMSCRIPTEN
+  settings.logging = (BOOL)Config_ReadInt ("logging", "Logging", 1);
+#else
   settings.logging = (BOOL)Config_ReadInt ("logging", "Logging", 0);
+#endif
   settings.log_clear = (BOOL)Config_ReadInt ("log_clear", "", 0);
 
   settings.run_in_window = (BOOL)Config_ReadInt ("run_in_window", "", 0);
@@ -1349,7 +1357,7 @@ int InitGfx ()
   grBufferSwap (0);
   grBufferClear (0, 0, 0xFFFF);
   grDepthMask (FXFALSE);
-#if (!EMSCRIPTEN)
+#if (!EMSCRIPTEN_HACK)
   grTexFilterMode (0, GR_TEXTUREFILTER_BILINEAR, GR_TEXTUREFILTER_BILINEAR);
   grTexFilterMode (1, GR_TEXTUREFILTER_BILINEAR, GR_TEXTUREFILTER_BILINEAR);
   grTexClampMode (0, GR_TEXTURECLAMP_CLAMP, GR_TEXTURECLAMP_CLAMP);
@@ -1589,7 +1597,7 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     }
     else
     {
-#if (!EMSCRIPTEN)
+#if (!EMSCRIPTEN_HACK)
         ERRLOG("Couldn't find Glide64mk2.ini");
         return M64ERR_FILES;
 #else
@@ -2034,6 +2042,7 @@ EXPORT void CALL ShowCFB (void)
 
 EXPORT void CALL SetRenderingCallback(void (*callback)(int))
 {
+  std::cerr<<"SetRenderingCallback"<<std::endl;
   VLOG("CALL SetRenderingCallback (*)\n");
     renderCallback = callback;
 }
@@ -2041,6 +2050,7 @@ EXPORT void CALL SetRenderingCallback(void (*callback)(int))
 void drawViRegBG()
 {
   LRDP("drawViRegBG\n");
+  std::cerr<<"drawViRegBG"<<std::endl;
   const wxUint32 VIwidth = *gfx.VI_WIDTH_REG;
   FB_TO_SCREEN_INFO fb_info;
   fb_info.width  = VIwidth;
@@ -2104,6 +2114,7 @@ output:   none
 wxUint32 update_screen_count = 0;
 EXPORT void CALL UpdateScreen (void)
 {
+  std::cerr<<"UpdateScreen invoked in Glide64"<<std::endl;
 #ifdef USE_FRAMESKIPPER
   frameSkipper.update();
 #endif
@@ -2166,9 +2177,13 @@ EXPORT void CALL UpdateScreen (void)
     }
     return;
   }
+#if (!EMSCRIPTEN_HACK)
   //*/
   if (settings.swapmode == 0)
     newSwapBuffers ();
+#else
+  newSwapBuffers();
+#endif
 }
 
 static void DrawWholeFrameBufferToScreen()
@@ -2411,12 +2426,16 @@ void newSwapBuffers()
   }
 
   if (settings.frame_buffer & fb_read_back_to_screen)
+  {
+    std::cerr<<"invoking drawWhoeframebuffertoscreen"<<std::endl;
     DrawWholeFrameBufferToScreen();
+  }
 
   if (fullscreen)
   {
     if (fb_hwfbe_enabled && !(settings.hacks&hack_RE2) && !evoodoo)
       grAuxBufferExt( GR_BUFFER_AUXBUFFER );
+      std::cerr<<"invoking grBufferSwap"<<std::endl;
     grBufferSwap (settings.vsync);
     fps_count ++;
     if (*gfx.VI_STATUS_REG&0x08) //gamma correction is used
@@ -2447,6 +2466,7 @@ void newSwapBuffers()
 
   if (fullscreen)
   {
+//#if
     if  (debugging || settings.wireframe || settings.buff_clear || (settings.hacks&hack_PPL && settings.ucode == 6))
     {
       if (settings.hacks&hack_RE2 && fb_depth_render_enabled)
@@ -2455,6 +2475,7 @@ void newSwapBuffers()
         grDepthMask (FXTRUE);
       grBufferClear (0, 0, 0xFFFF);
     }
+//#endif
     /* //let the game to clear the buffers
     else
     {
@@ -2467,8 +2488,10 @@ void newSwapBuffers()
   }
 
   if (settings.frame_buffer & fb_read_back_to_screen2)
+  {
+    std::cerr<<"invoking 2nd DrawWholeFrameBufferToScreen"<<std::endl;
     DrawWholeFrameBufferToScreen();
-
+  }
   frame_count ++;
 
   // Open/close debugger?

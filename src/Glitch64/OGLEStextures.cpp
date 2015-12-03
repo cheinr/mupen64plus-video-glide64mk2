@@ -749,15 +749,48 @@ grTexSource( GrChipID_t tmu,
       tex0_width = 256;
       tex0_height = tex0_width >> info->aspectRatioLog2;
     }
-
+#if (!EMSCRIPTEN)
     glBindTexture(GL_TEXTURE_2D, startAddress+1);
+#else
+EM_ASM_INT({
+    var id = $0|0;
+    if(!Module.texHandles)
+    {
+      Module.texHandles = {};
+    }
+    var handle = 0;
+    if(!Module.texHandles[id])
+    {
+        handle = GLctx.createTexture();
+        Module.texHandles[id] = handle;
+    }else{
+      handle = Module.texHandles[id];
+    }
+    if(handle)
+    {
+      GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+    }else{
+      console.error("OGL returned texture handle ",handle," for id: ",id);
+    }
+  },
+    startAddress+1);
+#endif
+
 #ifdef VPDEBUG
     dump_tex(startAddress+1);
 #endif
+
+#if (!EMSCRIPTEN)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t0);
+#else
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#endif
   }
   else
   {
@@ -773,15 +806,48 @@ grTexSource( GrChipID_t tmu,
       tex1_width = 256;
       tex1_height = tex1_width >> info->aspectRatioLog2;
     }
-
+#if (!EMSCRIPTEN)
     glBindTexture(GL_TEXTURE_2D, startAddress+1);
+#else
+    EM_ASM_INT({
+        var id = $0|0;
+        if(!Module.texHandles)
+        {
+          Module.texHandles = {};
+        }
+        var handle = 0;
+        if(!Module.texHandles[id])
+        {
+            handle = GLctx.createTexture();
+            Module.texHandles[id] = handle;
+        }else{
+          handle = Module.texHandles[id];
+        }
+        if(handle)
+        {
+          GLctx.bindTexture(GLctx.TEXTURE_2D, handle);
+        }else{
+          console.error("OGL returned texture handle ",handle," for id: ",id);
+        }
+      },
+        startAddress+1);
+#endif
+
 #ifdef VPDEBUG
     dump_tex(startAddress+1);
 #endif
+
+#if (!EMSCRIPTEN)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t1);
+#else
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#endif
   }
   if(!CheckTextureBufferFormat(tmu, startAddress+1, info))
   {

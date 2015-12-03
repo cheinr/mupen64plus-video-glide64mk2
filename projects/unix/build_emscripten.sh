@@ -12,6 +12,6 @@ emmake make \
   GL_CFLAGS="" \
   GLU_CFLAGS="" \
   V=1 \
-  LOADLIBES="/home/on-three/code/mupen64/source/boost_1_59_0/stage/lib/libboost_filesystem.a /home/on-three/code/mupen64/source/boost_1_59_0/stage/lib/libboost_system.a" \
-  OPTFLAGS="-O0 -g2 -s SIDE_MODULE=1 -s ASSERTIONS=1 -I/home/on-three/code/mupen64/source/boost_1_59_0 -DEMSCRIPTEN=1" \
+  LOADLIBES="../../../boost_1_59_0/stage/lib/libboost_filesystem.a ../../../boost_1_59_0/stage/lib/libboost_system.a" \
+  OPTFLAGS="-O0 -g2 -s SIDE_MODULE=1 -s ASSERTIONS=1 -I../../../boost_1_59_0 -DEMSCRIPTEN=1 -DNO_FILTER_THREAD=1" \
   $1

@@ -31,6 +31,12 @@
 #define Z_MAX (65536.0f)
 #define VERTEX_SIZE sizeof(VERTEX) //Size of vertex struct
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#include <iostream>
+//#include <GL/glu.h>
+#endif
+
 static int xy_off;
 static int xy_en;
 static int z_en;
@@ -58,21 +64,219 @@ static bool vertex_buffer_enabled = false;
 
 void vbo_init()
 {
-  
+
 }
 
 void vbo_draw()
 {
+  
+#if 0 //EMSCRIPTEN
+  return;
+#endif
+
   if(vertex_buffer_count)
   {
+
+#if 0
+    std::cerr<<"vbo_draw with vertex_buffer_count: "<<vertex_buffer_count<<std::endl;
+
+    // Why are they not creating a vertex buffer in OGLES and uploading vertices to GPU?
+#if  1 //EMSCRIPTEN
+
+    GLuint    vertexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+
+#if 0 //VERIFY buffer data
+    if(vertex_buffer_count == 6)
+    {
+      for(int i=0;i<6;++i)
+      {
+        VERTEX* v = &(vertex_buffer[i]);
+        std::cerr<<"v"<<i<<": "<<v->x<<","<<v->y<<","<<v->z<<std::endl;
+      }
+    }
+#endif
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, (void*)&vertex_buffer[0], GL_DYNAMIC_DRAW);
+
+#if 1 //EMSCRITPEN
+
+    // get our current program
+    GLint currentProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
+    // glBindAttribLocation(currentProgram, POSITION_ATTR, "aVertex");
+    // glBindAttribLocation(currentProgram, COLOUR_ATTR, "aColor");
+    // glBindAttribLocation(currentProgram, TEXCOORD_0_ATTR, "aMultiTexCoord0");
+    // glBindAttribLocation(currentProgram, TEXCOORD_1_ATTR, "aMultiTexCoord1");
+    // glBindAttribLocation(currentProgram, FOG_ATTR, "aFog");
+   EM_ASM({
+      var prog = GLctx.getIntegerv()
+      var loc = GLctx.GetAttribLocation()
+   });
+
+
+
+
+
+    glEnableVertexAttribArray(POSITION_ATTR);
+    glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].x); //Position
+    
+    glEnableVertexAttribArray(COLOUR_ATTR);
+    glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
+    
+
+    glEnableVertexAttribArray(TEXCOORD_0_ATTR);
+    glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[2]); //Tex0
+    
+
+    glEnableVertexAttribArray(TEXCOORD_1_ATTR);
+    glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
+    
+
+    glEnableVertexAttribArray(FOG_ATTR);
+    glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
+
+#endif
+
+#if 1 //EMSCRIPTEN
+    {
+      GLenum errCode;
+      const char *errString;
+      if ((errCode = glGetError()) != GL_NO_ERROR) 
+      {
+        std::cerr<<"glGetError ERROR _BEFORE_ calling glDrawArrays: "<<(int)errCode<<std::endl;
+      }
+    }
+#endif
+
+#endif
+
+    //GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to an enabled array and the buffer object's data store is currently mapped.
+    //GL_INVALID_OPERATION is generated if a geometry shader is active and mode is incompatible with the input primitive type of the geometry shader in the currently installed program object.
+
+    // EM_ASM({
+    //   GLctx.activeTexture(GLctx.TEXTURE0);
+    //   GLctx.bindTexture(GLctx.TEXTURE_2D, null);
+    //   GLctx.activeTexture(GLctx.TEXTURE1);
+    //   GLctx.bindTexture(GLctx.TEXTURE_2D, null);
+    //   GLctx.activeTexture(GLctx.TEXTURE2);
+    //   GLctx.bindTexture(GLctx.TEXTURE_2D, null);
+    // });
+
+    //glUseProgram(0);
+
+
     glDrawArrays(vertex_draw_mode,0,vertex_buffer_count);
+    //std::cerr<<"glDrawArrays with count: "<<vertex_buffer_count<<std::endl;
+
+#if 1 //EMSCRIPTEN
+    {
+      GLenum errCode;
+      const char *errString;
+      if ((errCode = glGetError()) != GL_NO_ERROR) 
+      {
+        std::cerr<<"glGetError ERROR _AFTER_ calling glDrawArrays: "<<(int)errCode<<std::endl;
+      }
+    }
+#endif
+
+#else
+
+    GLint currentProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
+
+    EM_ASM({
+
+    var gl = GLctx;
+    GLctx.clearColor(0.0, 1.0, 0.0, 1.0);
+    // Enable depth testing
+    GLctx.enable(GLctx.DEPTH_TEST);
+    // Near things obscure far things
+    GLctx.depthFunc(GLctx.LEQUAL);
+    // Clear the color as well as the depth buffer.
+    GLctx.clear(GLctx.COLOR_BUFFER_BIT | GLctx.DEPTH_BUFFER_BIT);
+
+    if(!Module.shaderProgram)
+    {
+
+      console.error("******** COMPILING SHADER ************");
+      // Creates fragment shader (returns white color for any position)
+      var fshader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fshader, 'void main(void)\n{gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}');
+      gl.compileShader(fshader);
+      if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS))
+      {alert("Error during fragment shader compilation:\n" + gl.getShaderInfoLog(fshader)); return;}
+
+      // Creates vertex shader (converts 2D point position to coordinates)
+      var vshader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vshader, 'attribute vec2 ppos; \nvoid main(void)\n{ gl_Position = vec4(ppos.x, ppos.y, 0.0, 1.0);}');
+      gl.compileShader(vshader);
+      if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
+      {alert('Error during vertex shader compilation:\n' + gl.getShaderInfoLog(vshader)); return;}
+
+      // Creates program and links shaders to it
+      var program = gl.createProgram();
+      gl.attachShader(program, fshader);
+      gl.attachShader(program, vshader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+       {alert("Error during program linking:" + gl.getProgramInfoLog(program));return;}
+
+      // Validates and uses program in the GL context
+      gl.validateProgram(program);
+      if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS))
+      {alert("Error during program validation:\n" + gl.getProgramInfoLog(program));return;}
+      
+      Module.shaderProgram = program;
+
+    }
+
+    var program = Module.shaderProgram;
+
+    gl.useProgram(program);
+
+    // Gets address of the input 'attribute' of the vertex shader
+    var vattrib = gl.getAttribLocation(program, 'ppos');
+    if(vattrib == -1)
+    {alert('Error during attribute address retrieval');return;}
+    gl.enableVertexAttribArray(vattrib);
+
+
+    // Initializes the vertex buffer and sets it as current one
+    var vbuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
+
+    // Puts vertices to buffer and links it to attribute variable 'ppos'
+    var vertices = new Float32Array([0.0,0.5,-0.5,-0.5,0.5,-0.5]);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vattrib, 2, gl.FLOAT, false, 0, 0);
+
+    // Draws the objext
+    console.error("******** GL DRAWARRAYS ************");
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.flush()
+
+  });
+
+
+  //reset the previous program
+  glUseProgram(currentProgram);
+
+#endif // if 0
     vertex_buffer_count = 0;
+
+#if 0 //EMSCRIPTEN
+    glDeleteBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+#endif
   }
 }
 
 //Buffer vertices instead of glDrawArrays(...)
 void vbo_buffer(GLenum mode,GLint first,GLsizei count,void* pointers)
 {
+  //std::cerr<<"vbo_buffer invoked."<<std::endl;
   if((count != 3 && mode != GL_TRIANGLES) || vertex_buffer_count + count > VERTEX_BUFFER_SIZE)
   {
     vbo_draw();
@@ -91,13 +295,19 @@ void vbo_buffer(GLenum mode,GLint first,GLsizei count,void* pointers)
     vbo_draw(); //Triangle fans and strips can't be joined as easily, just draw them straight away.
   }
 
-
+  //std::cerr<<"After vbo_buffer vertex_buffer_count: "<<vertex_buffer_count<<std::endl;
 }
 
 void vbo_enable()
 {
+#if 1 //(EMSCRIPTEN)
+  return;
+#endif
+
   if(vertex_buffer_enabled)
     return;
+
+  std::cerr<<"vbo_enable"<<std::endl;
 
   vertex_buffer_enabled = true;
   glEnableVertexAttribArray(POSITION_ATTR);
@@ -398,6 +608,15 @@ grDepthBiasLevel( FxI32 level )
 FX_ENTRY void FX_CALL
 grDrawTriangle( const void *a, const void *b, const void *c )
 {
+#if 0 //Verify the geometry
+  VERTEX* av = (VERTEX*)a;
+  VERTEX* bv = (VERTEX*)b;
+  VERTEX* cv = (VERTEX*)c;
+  std::cerr<<"triangle a: "<<av->x<<","<<av->y<<","<<av->z<<std::endl;
+  std::cerr<<"triangle b: "<<bv->x<<","<<bv->y<<","<<bv->z<<std::endl;
+  std::cerr<<"triangle c: "<<cv->x<<","<<cv->y<<","<<cv->z<<std::endl;
+  //std::cerr<<"grDrawTriangle "<<std::endl;
+#endif
   LOG("grDrawTriangle()\r\n\t");
 
   if(nvidia_viewport_hack && !render_to_texture)
@@ -414,11 +633,20 @@ grDrawTriangle( const void *a, const void *b, const void *c )
   {
     vbo_draw();
   }
+
+#if 1 //EMSCRIPTEN
+  vbo_enable();
+#endif
+
   vertex_draw_mode = GL_TRIANGLES;
   memcpy(&vertex_buffer[vertex_buffer_count],a,VERTEX_SIZE);
   memcpy(&vertex_buffer[vertex_buffer_count+1],b,VERTEX_SIZE);
   memcpy(&vertex_buffer[vertex_buffer_count+2],c,VERTEX_SIZE);
   vertex_buffer_count += 3;
+
+#if 0 // EMSCRIPTEN
+  vbo_draw();
+#endif
 }
 
 FX_ENTRY void FX_CALL
@@ -577,10 +805,13 @@ grDrawLine( const void *a, const void *b )
 FX_ENTRY void FX_CALL
 grDrawVertexArray(FxU32 mode, FxU32 Count, void *pointers2)
 {
+  //std::cerr<<"grDrawVertexArray: mode: "<<mode<<" Count: "<<Count<<std::endl;
   void **pointers = (void**)pointers2;
   LOG("grDrawVertexArray(%d,%d)\r\n", mode, Count);
 
+#if 1 //(!EMSCRIPTEN)
   if(nvidia_viewport_hack && !render_to_texture)
+#endif
   {
     glViewport(0, viewport_offset, viewport_width, viewport_height);
     nvidia_viewport_hack = 0;
@@ -595,13 +826,55 @@ grDrawVertexArray(FxU32 mode, FxU32 Count, void *pointers2)
     display_warning("grDrawVertexArray : unknown mode : %x", mode);
   }
 
+#if 0 //EMSCRIPTEN
+
+    GLuint    vertexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, (void*)&vertex_buffer[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*Count, pointers[0], GL_STATIC_DRAW);
+
+#endif
+
   vbo_enable();
+
+#if 1 //(!EMSCRIPTEN)
   vbo_buffer(GL_TRIANGLE_FAN,0,Count,pointers[0]);
+#endif
+
+#if 0 //EMSCRIPTEN
+
+  {
+      GLenum errCode;
+      const char *errString;
+      if ((errCode = glGetError()) != GL_NO_ERROR) 
+      {
+        std::cerr<<"glGetError ERROR _BEFORE_ calling glDrawArrays: "<<(int)errCode<<std::endl;
+      }
+    }
+
+  glDrawArrays(mode,0,Count);
+
+    {
+      GLenum errCode;
+      const char *errString;
+      if ((errCode = glGetError()) != GL_NO_ERROR) 
+      {
+        std::cerr<<"glGetError ERROR _AFTER_ calling glDrawArrays: "<<(int)errCode<<std::endl;
+      }
+    }
+
+  glDeleteBuffers(1, &vertexBuffer);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+#endif
 }
 
 FX_ENTRY void FX_CALL
 grDrawVertexArrayContiguous(FxU32 mode, FxU32 Count, void *pointers, FxU32 stride)
 {
+
+  //std::cerr<<"grDrawVertexArrayContiguous mode: "<<mode<<" Count: "<<Count<<" stride: "<<stride<<std::endl;
   LOG("grDrawVertexArrayContiguous(%d,%d,%d)\r\n", mode, Count, stride);
 
   if(nvidia_viewport_hack && !render_to_texture)

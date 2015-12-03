@@ -56,6 +56,10 @@
 extern FrameSkipper frameSkipper;
 #endif
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 /*
 const int NumOfFormats = 3;
 SCREEN_SHOT_FORMAT ScreenShotFormats[NumOfFormats] = { {wxT("BMP"), wxT("bmp"), wxBITMAP_TYPE_BMP}, {wxT("PNG"), wxT("png"), wxBITMAP_TYPE_PNG}, {wxT("JPEG"), wxT("jpeg"), wxBITMAP_TYPE_JPEG} };
@@ -557,8 +561,14 @@ class SoftLocker
 public:
   // lock the mutex in the ctor
   SoftLocker(SDL_sem *mutex)
-    : _isOk(false), _mutex(mutex)
-  { _isOk = ( SDL_SemTryWait(_mutex) == 0 ); }
+    : _isOk(true), _mutex(mutex)
+  {
+#if (!EMSCRIPTEN)
+  _isOk = ( SDL_SemTryWait(_mutex) == 0 );
+#else
+  _isOk = true;
+#endif
+  }
 
   // returns true if mutex was successfully locked in ctor
   bool IsOk() const
@@ -566,7 +576,11 @@ public:
 
   // unlock the mutex in dtor
   ~SoftLocker()
-  { if ( IsOk() ) SDL_SemPost(_mutex); }
+  {
+#if (!EMSCRIPTEN)
+    if ( IsOk() ) SDL_SemPost(_mutex);
+#endif
+  }
 
 private:
   bool     _isOk;
@@ -602,12 +616,22 @@ extern "C" {
 EXPORT void CALL ProcessDList(void)
 {
   SoftLocker lock(mutexProcessDList);
+
+#if EMSCRIPTEN
+  EM_ASM_INT({var i = $0|0;console.error("ProcessDList: ",i);},0);
+#endif
+
+#if (!EMSCRIPTEN)
 #ifdef USE_FRAMESKIPPER
   if (frameSkipper.willSkipNext() || !lock.IsOk()) //mutex is busy
 #else
   if (!lock.IsOk()) //mutex is busy
 #endif
   {
+    #if EMSCRIPTEN
+      EM_ASM_INT({var i = $0|0;console.error("ProcessDList BAILING bcz mutex notOK. ",i);},0);
+    #endif
+
     if (!fullscreen)
       drawNoFullscreenMessage();
     // Set an interrupt to allow the game to continue
@@ -615,6 +639,7 @@ EXPORT void CALL ProcessDList(void)
     gfx.CheckInterrupts();
     return;
   }
+#endif //EMSCRIPTEN
 
   no_dlist = false;
   update_screen_count = 0;
@@ -4286,4 +4311,3 @@ EXPORT void CALL ProcessRDPList(void)
 #ifdef __cplusplus
 }
 #endif
-

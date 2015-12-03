@@ -1359,13 +1359,17 @@ static void render_rectangle(int texture_number,
                              int src_width, int src_height,
                              int tex_width, int tex_height, int invert)
 {
+
+#if EMSCRIPTEN
+  std::cerr<<"render_rectangle with texture: "<<texture_number<<" dst_x: "<<dst_x<<" dst_y"<<dst_y<<" src_width"<< src_width<<" src_height: "<<src_height<<" tex_width: "<<tex_width<<" tex_height: "<<tex_height<<" invert: "<<invert<<std::endl;
+#endif
   LOGINFO("render_rectangle(%d,%d,%d,%d,%d,%d,%d,%d)",texture_number,dst_x,dst_y,src_width,src_height,tex_width,tex_height,invert);
   int vertexOffset_location;
   int textureSizes_location;
   static float data[] = {
     (float)((int)dst_x),                      //X 0
-    (float)(invert*-((int)dst_y)),            //Y 0 
-    0.0f,                                     //U 0 
+    (float)(invert*-((int)dst_y)),            //Y 0
+    0.0f,                                     //U 0
     0.0f,                                     //V 0
 
     (float)((int)dst_x),                      //X 1
@@ -1373,7 +1377,7 @@ static void render_rectangle(int texture_number,
     0.0f,                                     //U 1
     (float)src_height / (float)tex_height,    //V 1
 
-    (float)((int)dst_x + (int)src_width), 
+    (float)((int)dst_x + (int)src_width),
     (float)(invert*-((int)dst_y + (int)src_height)),
     (float)src_width / (float)tex_width,
     (float)src_height / (float)tex_height,
@@ -1385,6 +1389,13 @@ static void render_rectangle(int texture_number,
   };
 
   vbo_disable();
+
+#if EMSCRIPTEN
+  GLuint    vertexBuffer;
+  glGenBuffers(1, &vertexBuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float)*4*4, (void*)&data[0], GL_STATIC_DRAW);
+#endif
   glDisableVertexAttribArray(COLOUR_ATTR);
   glDisableVertexAttribArray(TEXCOORD_1_ATTR);
   glDisableVertexAttribArray(FOG_ATTR);
@@ -1400,6 +1411,11 @@ static void render_rectangle(int texture_number,
   disable_textureSizes();
 
   glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+
+#if EMSCRIPTEN
+    glDeleteBuffers(1, &vertexBuffer);
+#endif
+
   vbo_enable();
 
 
@@ -1435,6 +1451,7 @@ static void render_rectangle(int texture_number,
 
 void reloadTexture()
 {
+  //std::cerr<<"reloadTexture BAILING due to use_fbo: "<<use_fbo<<" or !render_to_texture:"<<!render_to_texture<<" or buffer_cleared"<<buffer_cleared<<std::endl;
   if (use_fbo || !render_to_texture || buffer_cleared)
     return;
 
@@ -1470,6 +1487,7 @@ void updateTexture()
 
     // nothing changed, don't update the texture
     if (!buffer_cleared) {
+      std::cerr<<"updateTexture BAILING due to !buffer_cleared: "<<!buffer_cleared<<std::endl;
       LOG("update cancelled\n", pBufferAddress);
       return;
     }
@@ -1721,6 +1739,8 @@ grBufferClear( GrColor_t color, GrAlpha_t alpha, FxU32 depth )
 FX_ENTRY void FX_CALL
 grBufferSwap( FxU32 swap_interval )
 {
+
+  std::cerr<<"grBufferSwap..."<<std::endl;
 //   GLuint program;
 
   vbo_draw();
@@ -1738,9 +1758,11 @@ grBufferSwap( FxU32 swap_interval )
   //printf("swap\n");
   if (render_to_texture) {
     display_warning("swap while render_to_texture\n");
+    std::cerr<<"BAILING On grBufferswap due to render_to_texture"<<std::endl;
     return;
   }
 
+  std::cerr<<"grBufferSwap... about to invoke CoreVideo_GL_SwapBuffers..."<<std::endl;
   CoreVideo_GL_SwapBuffers();
   for (i = 0; i < nb_fb; i++)
     fbs[i].buff_clear = 1;

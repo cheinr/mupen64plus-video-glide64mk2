@@ -2136,6 +2136,13 @@ void update ()
 
 void set_message_combiner ()
 {
+#if 0 //(EMSCRIPTEN)
+  grTexSource(GR_TMU0,
+    voodoo.tex_min_addr[GR_TMU0] + offset_font,
+    GR_MIPMAPLEVELMASK_BOTH,
+    &fontTex);
+#endif
+
   grColorCombine (GR_COMBINE_FUNCTION_SCALE_OTHER,
     GR_COMBINE_FACTOR_ONE,
     GR_COMBINE_LOCAL_NONE,
@@ -2174,10 +2181,11 @@ void set_message_combiner ()
     GR_COMBINE_FUNCTION_LOCAL,
     GR_COMBINE_FACTOR_NONE,
     FXFALSE, FXFALSE);
+#if 1 //(!EMSCRIPTEN)
   grTexSource(GR_TMU0,
     voodoo.tex_min_addr[GR_TMU0] + offset_font,
     GR_MIPMAPLEVELMASK_BOTH,
     &fontTex);
+#endif
   grFogMode (GR_FOG_DISABLE);
 }
-

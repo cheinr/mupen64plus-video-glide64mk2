@@ -23,7 +23,8 @@
 # Makefile for Glide64mk2 plugin in Mupen64Plus
 
 # detect operating system
-UNAME ?= $(shell uname -s)
+#UNAME ?= $(shell uname -s)
+UNAME := Linux
 OS := NONE
 ifeq ("$(UNAME)","Linux")
   OS = LINUX
@@ -403,6 +404,7 @@ SOURCE += \
 	$(SRCDIR)/GlideHQ/tc-1.1+/texstore.c
 
 #CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
+CPPFLAGS += -DTEXTURE_FILTER
 LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
 ifneq ($(EMSCRIPTEN),1)
   CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
