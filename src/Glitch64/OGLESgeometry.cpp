@@ -102,81 +102,27 @@ void vbo_draw()
 #if EMSCRIPTEN
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_DYNAMIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, (void*)&vertex_buffer[0], GL_DYNAMIC_DRAW);
-
-    // get our current program
-    //GLint currentProgram;
-    //glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
-    // glBindAttribLocation(currentProgram, POSITION_ATTR, "aVertex");
-    // glBindAttribLocation(currentProgram, COLOUR_ATTR, "aColor");
-    // glBindAttribLocation(currentProgram, TEXCOORD_0_ATTR, "aMultiTexCoord0");
-    // glBindAttribLocation(currentProgram, TEXCOORD_1_ATTR, "aMultiTexCoord1");
-    // glBindAttribLocation(currentProgram, FOG_ATTR, "aFog");
-   // EM_ASM({
-   //    var prog = GLctx.getIntegerv()
-   //    var loc = GLctx.GetAttribLocation()
-   // });
-
-    /*
-      GLint posAttr =  1;//glGetAttribLocation(tempProgram,"a_position");
-    glEnableVertexAttribArray(posAttr);
-    glVertexAttribPointer(posAttr, 4, GL_FLOAT, false, 6*4, BUFFER_OFFSET(0)); //Position
-    
-    // GLint colorAttr = glGetAttribLocation(currentProgram,"aColor");
-    // glEnableVertexAttribArray(colorAttr);
-    // glVertexAttribPointer(colorAttr, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
-    
-
-    GLint tex0Attr = 0;//glGetAttribLocation(tempProgram,"a_texcoord");
-    glEnableVertexAttribArray(tex0Attr);
-    glVertexAttribPointer(tex0Attr, 2, GL_FLOAT, false, 6*4, BUFFER_OFFSET(4)); //Tex0
-    
-
-    // GLint tex1Attr = glGetAttribLocation(currentProgram,"aMultiTexCoord1");
-    // glEnableVertexAttribArray(tex1Attr);
-    // glVertexAttribPointer(tex1Attr, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
-    
-
-    // GLint fogAttr = glGetAttribLocation(currentProgram,"aFog");
-    // glEnableVertexAttribArray(fogAttr);
-    // glVertexAttribPointer(fogAttr, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
-
-
-
-    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
-    //float mydata[] = {0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0};
-    glBufferData(GL_ARRAY_BUFFER, 4 * 18 , (void*)mydata, GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*6, vertex_buffer, GL_STATIC_DRAW);
-    */
-
-
 
     glEnableVertexAttribArray(POSITION_ATTR);
-    //glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].x); //Position
     unsigned int posOffset = 0;
     glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(0)); //Position
     
     glEnableVertexAttribArray(COLOUR_ATTR);
-    //glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
-    unsigned int colorOffset = (float*)&vertex_buffer[0].b - (float*)vertex_buffer;
-    glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, BUFFER_OFFSET(colorOffset*4)); //Colou
+    unsigned int colorOffset = (char*)&vertex_buffer[0].b - (char*)vertex_buffer;
+    glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, BUFFER_OFFSET(colorOffset)); //Colou
     
 
     glEnableVertexAttribArray(TEXCOORD_0_ATTR);
-    //glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[2]); //Tex0
     unsigned int tex0Offset = &vertex_buffer[0].coord[2] - (float*)vertex_buffer;
     glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(tex0Offset*4)); //Tex0
     
 
     glEnableVertexAttribArray(TEXCOORD_1_ATTR);
-    //glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
     unsigned int tex1Offset = &vertex_buffer[0].coord[0] - (float*)vertex_buffer;
     glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(tex1Offset*4)); //Tex1
     
 
     glEnableVertexAttribArray(FOG_ATTR);
-    //glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
     unsigned int foxOffset = &vertex_buffer[0].f - (float*)vertex_buffer;
     glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(foxOffset*4)); //Fog
 
