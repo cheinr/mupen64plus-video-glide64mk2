@@ -36,7 +36,6 @@
 #include <iostream>
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
-//#include <GL/glu.h>
 #endif
 
 static int xy_off;
@@ -63,33 +62,32 @@ static VERTEX vertex_buffer[VERTEX_BUFFER_SIZE];
 static int vertex_buffer_count = 0;
 static GLenum vertex_draw_mode;
 static bool vertex_buffer_enabled = false;
+#if EMSCRIPTEN
+GLuint gles2_vbo = -1;
+#endif
 
 void vbo_init()
 {
-
+#if EMSCRIPTEN
+  glGenBuffers(1, &gles2_vbo);
+#endif
 }
 
 void vbo_draw()
 {
   
-#if 0 //EMSCRIPTEN
-  return;
-#endif
-
   if(vertex_buffer_count)
   {
 
-#if 1
-    //std::cerr<<"vbo_draw with vertex_buffer_count: "<<vertex_buffer_count<<std::endl;
+#if EMSCRIPTEN
 
-    // Why are they not creating a vertex buffer in OGLES and uploading vertices to GPU?
-#if  1 //EMSCRIPTEN
+    if(gles2_vbo<0)
+    {
+      glGenBuffers(1, &gles2_vbo);
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, gles2_vbo);
 
-    GLuint    vertexBuffer;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-
-#if 0 //VERIFY buffer data
+#if 0 //DEBUG_BUFFER_DATA
     if(vertex_buffer_count == 6)
     {
       for(int i=0;i<6;++i)
@@ -98,11 +96,14 @@ void vbo_draw()
         std::cerr<<"v"<<i<<": "<<v->x<<","<<v->y<<","<<v->z<<std::endl;
       }
     }
-#endif
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, (void*)&vertex_buffer[0], GL_DYNAMIC_DRAW);
+#endif //DEBUG_BUFFER_DATA
+#endif //EMSCRIPTEN
 
-#if 1 //EMSCRITPEN
+#if EMSCRIPTEN
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_DYNAMIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, (void*)&vertex_buffer[0], GL_DYNAMIC_DRAW);
 
     // get our current program
     //GLint currentProgram;
@@ -117,7 +118,37 @@ void vbo_draw()
    //    var loc = GLctx.GetAttribLocation()
    // });
 
+    /*
+      GLint posAttr =  1;//glGetAttribLocation(tempProgram,"a_position");
+    glEnableVertexAttribArray(posAttr);
+    glVertexAttribPointer(posAttr, 4, GL_FLOAT, false, 6*4, BUFFER_OFFSET(0)); //Position
+    
+    // GLint colorAttr = glGetAttribLocation(currentProgram,"aColor");
+    // glEnableVertexAttribArray(colorAttr);
+    // glVertexAttribPointer(colorAttr, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
+    
 
+    GLint tex0Attr = 0;//glGetAttribLocation(tempProgram,"a_texcoord");
+    glEnableVertexAttribArray(tex0Attr);
+    glVertexAttribPointer(tex0Attr, 2, GL_FLOAT, false, 6*4, BUFFER_OFFSET(4)); //Tex0
+    
+
+    // GLint tex1Attr = glGetAttribLocation(currentProgram,"aMultiTexCoord1");
+    // glEnableVertexAttribArray(tex1Attr);
+    // glVertexAttribPointer(tex1Attr, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
+    
+
+    // GLint fogAttr = glGetAttribLocation(currentProgram,"aFog");
+    // glEnableVertexAttribArray(fogAttr);
+    // glVertexAttribPointer(fogAttr, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
+
+
+
+    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
+    //float mydata[] = {0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0};
+    glBufferData(GL_ARRAY_BUFFER, 4 * 18 , (void*)mydata, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*6, vertex_buffer, GL_STATIC_DRAW);
+    */
 
 
 
@@ -149,237 +180,14 @@ void vbo_draw()
     unsigned int foxOffset = &vertex_buffer[0].f - (float*)vertex_buffer;
     glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(foxOffset*4)); //Fog
 
-#endif
 
-#if 1 //EMSCRIPTEN
-    {
-      GLenum errCode;
-      const char *errString;
-      if ((errCode = glGetError()) != GL_NO_ERROR) 
-      {
-        std::cerr<<"glGetError ERROR _BEFORE_ calling glDrawArrays: "<<(int)errCode<<std::endl;
-      }
-    }
-#endif
-
-#endif
-
-    //GL_INVALID_OPERATION is generated if a non-zero buffer object name is bound to an enabled array and the buffer object's data store is currently mapped.
-    //GL_INVALID_OPERATION is generated if a geometry shader is active and mode is incompatible with the input primitive type of the geometry shader in the currently installed program object.
-
-    // EM_ASM({
-    //   GLctx.activeTexture(GLctx.TEXTURE0);
-    //   GLctx.bindTexture(GLctx.TEXTURE_2D, null);
-    //   GLctx.activeTexture(GLctx.TEXTURE1);
-    //   GLctx.bindTexture(GLctx.TEXTURE_2D, null);
-    //   GLctx.activeTexture(GLctx.TEXTURE2);
-    //   GLctx.bindTexture(GLctx.TEXTURE_2D, null);
-    // });
-
-    //glUseProgram(0);
-
+#endif //EMSCRIPTEN
 
     glDrawArrays(vertex_draw_mode,0,vertex_buffer_count);
-    //std::cerr<<"glDrawArrays with count: "<<vertex_buffer_count<<std::endl;
 
-#if 1 //EMSCRIPTEN
-    {
-      GLenum errCode;
-      const char *errString;
-      if ((errCode = glGetError()) != GL_NO_ERROR) 
-      {
-        std::cerr<<"glGetError ERROR _AFTER_ calling glDrawArrays: "<<(int)errCode<<std::endl;
-      }
-    }
-#endif
-
-#else
-
-    GLint currentProgram;
-      glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
-
-    //if(vertex_draw_mode != GL_TRIANGLES && vertex_buffer_count != 6)
-    //{
-
-
-
-      GLint tempProgram = (GLint) EM_ASM_INT_V({
-
-      var gl = GLctx;
-      //GLctx.clearColor(0.0, 1.0, 0.0, 1.0);
-      // Enable depth testing
-      //GLctx.enable(GLctx.DEPTH_TEST);
-      // Near things obscure far things
-      //GLctx.depthFunc(GLctx.LEQUAL);
-      // Clear the color as well as the depth buffer.
-      //GLctx.clear(GLctx.COLOR_BUFFER_BIT | GLctx.DEPTH_BUFFER_BIT);
-
-      if(!Module.shaderProgram)
-      {
-
-        console.error("******** COMPILING SHADER ************");
-        // Creates vertex shader (converts 2D point position to coordinates)
-        var vshader = gl.createShader(gl.VERTEX_SHADER);
-        var vshaderSource = 'precision highp float;\n'+
-        'attribute vec4 a_position;\n'+
-        'attribute vec2 a_texcoord;\n'+
-        'varying vec2 v_texcoord;\n'+
-         'void main(void)\n{\n'+
-         ' gl_Position = a_position;\n'+
-         'v_texcoord = a_texcoord;\n'+
-         '}';
-        gl.shaderSource(vshader, vshaderSource);
-        gl.compileShader(vshader);
-        if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
-        {alert('Error during vertex shader compilation:\n' + gl.getShaderInfoLog(vshader)); return;}
-
-
-        // Creates fragment shader (returns white color for any position)
-        var fshader = gl.createShader(gl.FRAGMENT_SHADER);
-        var fshaderSource = 'precision highp float;\n' +
-        'uniform sampler2D uSampler;\n'+
-        'varying vec2 v_texcoord;\n'+
-        'void main(void)\n{\n'+
-        //'gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n'+
-        'gl_FragColor = texture2D(uSampler, vec2(v_texcoord.s, v_texcoord.t));\n'+
-        '}';
-        gl.shaderSource(fshader, fshaderSource);
-        gl.compileShader(fshader);
-        if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS))
-        {alert("Error during fragment shader compilation:\n" + gl.getShaderInfoLog(fshader)); return;}
-
-
-
-        // Creates program and links shaders to it
-        var program = gl.createProgram();
-        gl.attachShader(program, fshader);
-        gl.attachShader(program, vshader);
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-         {alert("Error during program linking:" + gl.getProgramInfoLog(program));return;}
-
-        // Validates and uses program in the GL context
-        gl.validateProgram(program);
-        if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS))
-        {alert("Error during program validation:\n" + gl.getProgramInfoLog(program));return;}
-        
-        Module.shaderProgram = program;
-
-      }
-
-      var program = Module.shaderProgram;
-
-      gl.useProgram(program);
-
-      console.error("***8 JAVASCRIPT going to return value: ",program);
-
-      // Gets address of the input 'attribute' of the vertex shader
-      // var vattrib = gl.getAttribLocation(program, 'a_position');
-      // if(vattrib == -1)
-      // {alert('Error during attribute address retrieval');return;}
-      // gl.enableVertexAttribArray(vattrib);
-
-      // console.error("javacript a_position is index: ",vattrib);
-
-      // var tattrib = gl.getAttribLocation(program, 'a_texcoord');
-      // if(tattrib == -1)
-      // {alert('Error during texture attrib address retrieval');return;}
-      // gl.enableVertexAttribArray(tattrib);
-
-      // console.error("javacript a_texcoord is index: ",tattrib);
-
-      gl.uniform1i(gl.getUniformLocation(program, "uSampler"), 1);
-
-
-      // Initializes the vertex buffer and sets it as current one
-      //var vbuffer = gl.createBuffer();
-      //gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
-
-      // Puts vertices to buffer and links it to attribute variable 'ppos'
-      //var vertices = new Float32Array([0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0]);
-      // gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-      // gl.vertexAttribPointer(vattrib, 4, gl.FLOAT, false, 156, 0);
-      // gl.vertexAttribPointer(tattrib, 2, gl.FLOAT, false, 156, 0);
-
-      // Draws the objext
-      //console.error("******** GL DRAWARRAYS ************");
-      //gl.drawArrays(gl.TRIANGLES, 0, 3);
-      //gl.flush()
-
-      return program;
-
-    });
-
-      //glDrawArrays(GL_TRIANGLES, 0, 3);
-
-      //reset the previous program
-      //glUseProgram(currentProgram);
-  //}
-
-      //GLint tempProgram;
-      //glGetIntegerv(GL_CURRENT_PROGRAM,&tempProgram);
-
-  //std::cerr<<"tempProgram id: "<<tempProgram<<" and original program: "<<currentProgram<<std::endl;
-
-  //glUseProgram(tempProgram);
-
-
-  if( 1 ) //vertex_draw_mode == GL_TRIANGLES && vertex_buffer_count == 6)
-  {
-
-    GLuint    vertexBuffer;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-
-    //float mydata[] = {0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0};
-
-    GLint posAttr =  1;//glGetAttribLocation(tempProgram,"a_position");
-    glEnableVertexAttribArray(posAttr);
-    glVertexAttribPointer(posAttr, 4, GL_FLOAT, false, 6*4, BUFFER_OFFSET(0)); //Position
-    
-    // GLint colorAttr = glGetAttribLocation(currentProgram,"aColor");
-    // glEnableVertexAttribArray(colorAttr);
-    // glVertexAttribPointer(colorAttr, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
-    
-
-    GLint tex0Attr = 0;//glGetAttribLocation(tempProgram,"a_texcoord");
-    glEnableVertexAttribArray(tex0Attr);
-    glVertexAttribPointer(tex0Attr, 2, GL_FLOAT, false, 6*4, BUFFER_OFFSET(4)); //Tex0
-    
-
-    // GLint tex1Attr = glGetAttribLocation(currentProgram,"aMultiTexCoord1");
-    // glEnableVertexAttribArray(tex1Attr);
-    // glVertexAttribPointer(tex1Attr, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
-    
-
-    // GLint fogAttr = glGetAttribLocation(currentProgram,"aFog");
-    // glEnableVertexAttribArray(fogAttr);
-    // glVertexAttribPointer(fogAttr, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
-
-
-
-    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
-    //float mydata[] = {0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0};
-    glBufferData(GL_ARRAY_BUFFER, 4 * 18 , (void*)mydata, GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*6, vertex_buffer, GL_STATIC_DRAW);
-
-    glDrawArrays(GL_TRIANGLES, 0, 3);//vertex_buffer_count);
-    //glDrawArrays(vertex_draw_mode, 0, vertex_buffer_count);
-
-    //glDeleteBuffers(1, &vertexBuffer);
-  }
-
-  //reset old program
-  glUseProgram(currentProgram);
-
-  
-
-
-#endif // if 0
     vertex_buffer_count = 0;
 
-#if 1 //EMSCRIPTEN
-    glDeleteBuffers(1, &vertexBuffer);
+#if EMSCRIPTEN
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 #endif
   }
@@ -388,7 +196,6 @@ void vbo_draw()
 //Buffer vertices instead of glDrawArrays(...)
 void vbo_buffer(GLenum mode,GLint first,GLsizei count,void* pointers)
 {
-  //std::cerr<<"vbo_buffer invoked."<<std::endl;
   if((count != 3 && mode != GL_TRIANGLES) || vertex_buffer_count + count > VERTEX_BUFFER_SIZE)
   {
     vbo_draw();
@@ -407,19 +214,12 @@ void vbo_buffer(GLenum mode,GLint first,GLsizei count,void* pointers)
     vbo_draw(); //Triangle fans and strips can't be joined as easily, just draw them straight away.
   }
 
-  //std::cerr<<"After vbo_buffer vertex_buffer_count: "<<vertex_buffer_count<<std::endl;
 }
 
 void vbo_enable()
 {
-#if 0 //(EMSCRIPTEN)
-  return;
-#endif
-
   if(vertex_buffer_enabled)
     return;
-
-  std::cerr<<"vbo_enable"<<std::endl;
 
   vertex_buffer_enabled = true;
   glEnableVertexAttribArray(POSITION_ATTR);
@@ -720,14 +520,13 @@ grDepthBiasLevel( FxI32 level )
 FX_ENTRY void FX_CALL
 grDrawTriangle( const void *a, const void *b, const void *c )
 {
-#if 0 //Verify the geometry
+#if DEBUG_BUFFER_DATA
   VERTEX* av = (VERTEX*)a;
   VERTEX* bv = (VERTEX*)b;
   VERTEX* cv = (VERTEX*)c;
   std::cerr<<"triangle a: "<<av->x<<","<<av->y<<","<<av->z<<std::endl;
   std::cerr<<"triangle b: "<<bv->x<<","<<bv->y<<","<<bv->z<<std::endl;
   std::cerr<<"triangle c: "<<cv->x<<","<<cv->y<<","<<cv->z<<std::endl;
-  //std::cerr<<"grDrawTriangle "<<std::endl;
 #endif
   LOG("grDrawTriangle()\r\n\t");
 
@@ -746,9 +545,7 @@ grDrawTriangle( const void *a, const void *b, const void *c )
     vbo_draw();
   }
 
-#if 1 //EMSCRIPTEN
   vbo_enable();
-#endif
 
   vertex_draw_mode = GL_TRIANGLES;
   memcpy(&vertex_buffer[vertex_buffer_count],a,VERTEX_SIZE);
@@ -756,9 +553,6 @@ grDrawTriangle( const void *a, const void *b, const void *c )
   memcpy(&vertex_buffer[vertex_buffer_count+2],c,VERTEX_SIZE);
   vertex_buffer_count += 3;
 
-#if 0 // EMSCRIPTEN
-  vbo_draw();
-#endif
 }
 
 FX_ENTRY void FX_CALL
@@ -917,13 +711,10 @@ grDrawLine( const void *a, const void *b )
 FX_ENTRY void FX_CALL
 grDrawVertexArray(FxU32 mode, FxU32 Count, void *pointers2)
 {
-  //std::cerr<<"grDrawVertexArray: mode: "<<mode<<" Count: "<<Count<<std::endl;
   void **pointers = (void**)pointers2;
   LOG("grDrawVertexArray(%d,%d)\r\n", mode, Count);
 
-#if 1 //(!EMSCRIPTEN)
   if(nvidia_viewport_hack && !render_to_texture)
-#endif
   {
     glViewport(0, viewport_offset, viewport_width, viewport_height);
     nvidia_viewport_hack = 0;
@@ -938,55 +729,16 @@ grDrawVertexArray(FxU32 mode, FxU32 Count, void *pointers2)
     display_warning("grDrawVertexArray : unknown mode : %x", mode);
   }
 
-#if 0 //EMSCRIPTEN
-
-    GLuint    vertexBuffer;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, (void*)&vertex_buffer[0], GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*Count, pointers[0], GL_STATIC_DRAW);
-
-#endif
-
   vbo_enable();
 
-#if 1 //(!EMSCRIPTEN)
   vbo_buffer(GL_TRIANGLE_FAN,0,Count,pointers[0]);
-#endif
 
-#if 0 //EMSCRIPTEN
-
-  {
-      GLenum errCode;
-      const char *errString;
-      if ((errCode = glGetError()) != GL_NO_ERROR) 
-      {
-        std::cerr<<"glGetError ERROR _BEFORE_ calling glDrawArrays: "<<(int)errCode<<std::endl;
-      }
-    }
-
-  glDrawArrays(mode,0,Count);
-
-    {
-      GLenum errCode;
-      const char *errString;
-      if ((errCode = glGetError()) != GL_NO_ERROR) 
-      {
-        std::cerr<<"glGetError ERROR _AFTER_ calling glDrawArrays: "<<(int)errCode<<std::endl;
-      }
-    }
-
-  glDeleteBuffers(1, &vertexBuffer);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-#endif
 }
 
 FX_ENTRY void FX_CALL
 grDrawVertexArrayContiguous(FxU32 mode, FxU32 Count, void *pointers, FxU32 stride)
 {
 
-  //std::cerr<<"grDrawVertexArrayContiguous mode: "<<mode<<" Count: "<<Count<<" stride: "<<stride<<std::endl;
   LOG("grDrawVertexArrayContiguous(%d,%d,%d)\r\n", mode, Count, stride);
 
   if(nvidia_viewport_hack && !render_to_texture)
