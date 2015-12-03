@@ -526,6 +526,10 @@ void ReadSettings ()
 
 void ReadSpecialSettings (const char * name)
 {
+
+#if 0 //EMSCRIPTEN
+  return;
+#endif
   //  char buf [256];
   //  sprintf(buf, "ReadSpecialSettings. Name: %s\n", name);
   //  LOG(buf);

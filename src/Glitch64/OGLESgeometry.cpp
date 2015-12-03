@@ -34,6 +34,8 @@
 #if EMSCRIPTEN
 #include "emscripten.h"
 #include <iostream>
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 //#include <GL/glu.h>
 #endif
 
@@ -77,8 +79,8 @@ void vbo_draw()
   if(vertex_buffer_count)
   {
 
-#if 0
-    std::cerr<<"vbo_draw with vertex_buffer_count: "<<vertex_buffer_count<<std::endl;
+#if 1
+    //std::cerr<<"vbo_draw with vertex_buffer_count: "<<vertex_buffer_count<<std::endl;
 
     // Why are they not creating a vertex buffer in OGLES and uploading vertices to GPU?
 #if  1 //EMSCRIPTEN
@@ -103,39 +105,49 @@ void vbo_draw()
 #if 1 //EMSCRITPEN
 
     // get our current program
-    GLint currentProgram;
-    glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
+    //GLint currentProgram;
+    //glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
     // glBindAttribLocation(currentProgram, POSITION_ATTR, "aVertex");
     // glBindAttribLocation(currentProgram, COLOUR_ATTR, "aColor");
     // glBindAttribLocation(currentProgram, TEXCOORD_0_ATTR, "aMultiTexCoord0");
     // glBindAttribLocation(currentProgram, TEXCOORD_1_ATTR, "aMultiTexCoord1");
     // glBindAttribLocation(currentProgram, FOG_ATTR, "aFog");
-   EM_ASM({
-      var prog = GLctx.getIntegerv()
-      var loc = GLctx.GetAttribLocation()
-   });
+   // EM_ASM({
+   //    var prog = GLctx.getIntegerv()
+   //    var loc = GLctx.GetAttribLocation()
+   // });
 
 
 
 
 
     glEnableVertexAttribArray(POSITION_ATTR);
-    glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].x); //Position
+    //glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].x); //Position
+    unsigned int posOffset = 0;
+    glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(0)); //Position
     
     glEnableVertexAttribArray(COLOUR_ATTR);
-    glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
+    //glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
+    unsigned int colorOffset = (float*)&vertex_buffer[0].b - (float*)vertex_buffer;
+    glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, BUFFER_OFFSET(colorOffset*4)); //Colou
     
 
     glEnableVertexAttribArray(TEXCOORD_0_ATTR);
-    glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[2]); //Tex0
+    //glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[2]); //Tex0
+    unsigned int tex0Offset = &vertex_buffer[0].coord[2] - (float*)vertex_buffer;
+    glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(tex0Offset*4)); //Tex0
     
 
     glEnableVertexAttribArray(TEXCOORD_1_ATTR);
-    glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
+    //glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
+    unsigned int tex1Offset = &vertex_buffer[0].coord[0] - (float*)vertex_buffer;
+    glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(tex1Offset*4)); //Tex1
     
 
     glEnableVertexAttribArray(FOG_ATTR);
-    glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
+    //glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
+    unsigned int foxOffset = &vertex_buffer[0].f - (float*)vertex_buffer;
+    glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(foxOffset*4)); //Fog
 
 #endif
 
@@ -184,115 +196,189 @@ void vbo_draw()
 #else
 
     GLint currentProgram;
-    glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
+      glGetIntegerv(GL_CURRENT_PROGRAM,&currentProgram);
 
-    EM_ASM({
-
-    var gl = GLctx;
-    GLctx.clearColor(0.0, 1.0, 0.0, 1.0);
-    // Enable depth testing
-    GLctx.enable(GLctx.DEPTH_TEST);
-    // Near things obscure far things
-    GLctx.depthFunc(GLctx.LEQUAL);
-    // Clear the color as well as the depth buffer.
-    GLctx.clear(GLctx.COLOR_BUFFER_BIT | GLctx.DEPTH_BUFFER_BIT);
-
-    if(!Module.shaderProgram)
-    {
-
-      console.error("******** COMPILING SHADER ************");
-      // Creates vertex shader (converts 2D point position to coordinates)
-      var vshader = gl.createShader(gl.VERTEX_SHADER);
-      var vshaderSource = 'precision highp float;\n'+
-      'attribute vec4 a_position;\n'+
-      'attribute vec2 a_texcoord;\n'+
-      'varying vec2 v_texcoord;\n'+
-       'void main(void)\n{\n'+
-       ' gl_Position = a_position;\n'+
-       'v_texcoord = a_texcoord;\n'+
-       '}';
-      gl.shaderSource(vshader, vshaderSource);
-      gl.compileShader(vshader);
-      if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
-      {alert('Error during vertex shader compilation:\n' + gl.getShaderInfoLog(vshader)); return;}
-
-
-      // Creates fragment shader (returns white color for any position)
-      var fshader = gl.createShader(gl.FRAGMENT_SHADER);
-      var fshaderSource = 'precision highp float;\n' +
-      'uniform sampler2D uSampler;\n'+
-      'varying vec2 v_texcoord;\n'+
-      'void main(void)\n{\n'+
-      //'gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n'+
-      'gl_FragColor = texture2D(uSampler, vec2(v_texcoord.s, v_texcoord.t));\n'+
-      '}';
-      gl.shaderSource(fshader, fshaderSource);
-      gl.compileShader(fshader);
-      if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS))
-      {alert("Error during fragment shader compilation:\n" + gl.getShaderInfoLog(fshader)); return;}
+    //if(vertex_draw_mode != GL_TRIANGLES && vertex_buffer_count != 6)
+    //{
 
 
 
-      // Creates program and links shaders to it
-      var program = gl.createProgram();
-      gl.attachShader(program, fshader);
-      gl.attachShader(program, vshader);
-      gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-       {alert("Error during program linking:" + gl.getProgramInfoLog(program));return;}
+      GLint tempProgram = (GLint) EM_ASM_INT_V({
 
-      // Validates and uses program in the GL context
-      gl.validateProgram(program);
-      if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS))
-      {alert("Error during program validation:\n" + gl.getProgramInfoLog(program));return;}
-      
-      Module.shaderProgram = program;
+      var gl = GLctx;
+      //GLctx.clearColor(0.0, 1.0, 0.0, 1.0);
+      // Enable depth testing
+      //GLctx.enable(GLctx.DEPTH_TEST);
+      // Near things obscure far things
+      //GLctx.depthFunc(GLctx.LEQUAL);
+      // Clear the color as well as the depth buffer.
+      //GLctx.clear(GLctx.COLOR_BUFFER_BIT | GLctx.DEPTH_BUFFER_BIT);
 
-    }
+      if(!Module.shaderProgram)
+      {
 
-    var program = Module.shaderProgram;
-
-    gl.useProgram(program);
-
-    // Gets address of the input 'attribute' of the vertex shader
-    var vattrib = gl.getAttribLocation(program, 'a_position');
-    if(vattrib == -1)
-    {alert('Error during attribute address retrieval');return;}
-    gl.enableVertexAttribArray(vattrib);
-
-    var tattrib = gl.getAttribLocation(program, 'a_texcoord');
-    if(tattrib == -1)
-    {alert('Error during texture attrib address retrieval');return;}
-    gl.enableVertexAttribArray(tattrib);
-
-    gl.uniform1i(gl.getUniformLocation(program, "uSampler"), 1);
+        console.error("******** COMPILING SHADER ************");
+        // Creates vertex shader (converts 2D point position to coordinates)
+        var vshader = gl.createShader(gl.VERTEX_SHADER);
+        var vshaderSource = 'precision highp float;\n'+
+        'attribute vec4 a_position;\n'+
+        'attribute vec2 a_texcoord;\n'+
+        'varying vec2 v_texcoord;\n'+
+         'void main(void)\n{\n'+
+         ' gl_Position = a_position;\n'+
+         'v_texcoord = a_texcoord;\n'+
+         '}';
+        gl.shaderSource(vshader, vshaderSource);
+        gl.compileShader(vshader);
+        if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS))
+        {alert('Error during vertex shader compilation:\n' + gl.getShaderInfoLog(vshader)); return;}
 
 
-    // Initializes the vertex buffer and sets it as current one
-    var vbuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
-
-    // Puts vertices to buffer and links it to attribute variable 'ppos'
-    var vertices = new Float32Array([0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0]);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(vattrib, 4, gl.FLOAT, false, 6*4, 0);
-    gl.vertexAttribPointer(tattrib, 2, gl.FLOAT, false, 6*4, 0);
-
-    // Draws the objext
-    console.error("******** GL DRAWARRAYS ************");
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    gl.flush()
-
-  });
+        // Creates fragment shader (returns white color for any position)
+        var fshader = gl.createShader(gl.FRAGMENT_SHADER);
+        var fshaderSource = 'precision highp float;\n' +
+        'uniform sampler2D uSampler;\n'+
+        'varying vec2 v_texcoord;\n'+
+        'void main(void)\n{\n'+
+        //'gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n'+
+        'gl_FragColor = texture2D(uSampler, vec2(v_texcoord.s, v_texcoord.t));\n'+
+        '}';
+        gl.shaderSource(fshader, fshaderSource);
+        gl.compileShader(fshader);
+        if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS))
+        {alert("Error during fragment shader compilation:\n" + gl.getShaderInfoLog(fshader)); return;}
 
 
-  //reset the previous program
+
+        // Creates program and links shaders to it
+        var program = gl.createProgram();
+        gl.attachShader(program, fshader);
+        gl.attachShader(program, vshader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+         {alert("Error during program linking:" + gl.getProgramInfoLog(program));return;}
+
+        // Validates and uses program in the GL context
+        gl.validateProgram(program);
+        if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS))
+        {alert("Error during program validation:\n" + gl.getProgramInfoLog(program));return;}
+        
+        Module.shaderProgram = program;
+
+      }
+
+      var program = Module.shaderProgram;
+
+      gl.useProgram(program);
+
+      console.error("***8 JAVASCRIPT going to return value: ",program);
+
+      // Gets address of the input 'attribute' of the vertex shader
+      // var vattrib = gl.getAttribLocation(program, 'a_position');
+      // if(vattrib == -1)
+      // {alert('Error during attribute address retrieval');return;}
+      // gl.enableVertexAttribArray(vattrib);
+
+      // console.error("javacript a_position is index: ",vattrib);
+
+      // var tattrib = gl.getAttribLocation(program, 'a_texcoord');
+      // if(tattrib == -1)
+      // {alert('Error during texture attrib address retrieval');return;}
+      // gl.enableVertexAttribArray(tattrib);
+
+      // console.error("javacript a_texcoord is index: ",tattrib);
+
+      gl.uniform1i(gl.getUniformLocation(program, "uSampler"), 1);
+
+
+      // Initializes the vertex buffer and sets it as current one
+      //var vbuffer = gl.createBuffer();
+      //gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
+
+      // Puts vertices to buffer and links it to attribute variable 'ppos'
+      //var vertices = new Float32Array([0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0]);
+      // gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+      // gl.vertexAttribPointer(vattrib, 4, gl.FLOAT, false, 156, 0);
+      // gl.vertexAttribPointer(tattrib, 2, gl.FLOAT, false, 156, 0);
+
+      // Draws the objext
+      //console.error("******** GL DRAWARRAYS ************");
+      //gl.drawArrays(gl.TRIANGLES, 0, 3);
+      //gl.flush()
+
+      return program;
+
+    });
+
+      //glDrawArrays(GL_TRIANGLES, 0, 3);
+
+      //reset the previous program
+      //glUseProgram(currentProgram);
+  //}
+
+      //GLint tempProgram;
+      //glGetIntegerv(GL_CURRENT_PROGRAM,&tempProgram);
+
+  //std::cerr<<"tempProgram id: "<<tempProgram<<" and original program: "<<currentProgram<<std::endl;
+
+  //glUseProgram(tempProgram);
+
+
+  if( 1 ) //vertex_draw_mode == GL_TRIANGLES && vertex_buffer_count == 6)
+  {
+
+    GLuint    vertexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+
+    //float mydata[] = {0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0};
+
+    GLint posAttr =  1;//glGetAttribLocation(tempProgram,"a_position");
+    glEnableVertexAttribArray(posAttr);
+    glVertexAttribPointer(posAttr, 4, GL_FLOAT, false, 6*4, BUFFER_OFFSET(0)); //Position
+    
+    // GLint colorAttr = glGetAttribLocation(currentProgram,"aColor");
+    // glEnableVertexAttribArray(colorAttr);
+    // glVertexAttribPointer(colorAttr, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, &vertex_buffer[0].b); //Colour
+    
+
+    GLint tex0Attr = 0;//glGetAttribLocation(tempProgram,"a_texcoord");
+    glEnableVertexAttribArray(tex0Attr);
+    glVertexAttribPointer(tex0Attr, 2, GL_FLOAT, false, 6*4, BUFFER_OFFSET(4)); //Tex0
+    
+
+    // GLint tex1Attr = glGetAttribLocation(currentProgram,"aMultiTexCoord1");
+    // glEnableVertexAttribArray(tex1Attr);
+    // glVertexAttribPointer(tex1Attr, 2, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].coord[0]); //Tex1
+    
+
+    // GLint fogAttr = glGetAttribLocation(currentProgram,"aFog");
+    // glEnableVertexAttribArray(fogAttr);
+    // glVertexAttribPointer(fogAttr, 1, GL_FLOAT, false, VERTEX_SIZE, &vertex_buffer[0].f); //Fog
+
+
+
+    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*vertex_buffer_count, vertex_buffer, GL_STATIC_DRAW);
+    //float mydata[] = {0.0,0.5,0.0,1.0,  0.0,0.0, -0.5,-0.5,0.0,1.0,  1.0,1.0,  0.5,-0.5,0.0,1.0,  1.0,1.0};
+    glBufferData(GL_ARRAY_BUFFER, 4 * 18 , (void*)mydata, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, VERTEX_SIZE*6, vertex_buffer, GL_STATIC_DRAW);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);//vertex_buffer_count);
+    //glDrawArrays(vertex_draw_mode, 0, vertex_buffer_count);
+
+    //glDeleteBuffers(1, &vertexBuffer);
+  }
+
+  //reset old program
   glUseProgram(currentProgram);
+
+  
+
 
 #endif // if 0
     vertex_buffer_count = 0;
 
-#if 0 //EMSCRIPTEN
+#if 1 //EMSCRIPTEN
     glDeleteBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 #endif
@@ -326,7 +412,7 @@ void vbo_buffer(GLenum mode,GLint first,GLsizei count,void* pointers)
 
 void vbo_enable()
 {
-#if 1 //(EMSCRIPTEN)
+#if 0 //(EMSCRIPTEN)
   return;
 #endif
 
