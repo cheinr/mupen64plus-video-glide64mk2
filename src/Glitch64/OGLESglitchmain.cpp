@@ -1360,9 +1360,6 @@ static void render_rectangle(int texture_number,
                              int tex_width, int tex_height, int invert)
 {
 
-#if EMSCRIPTEN
-  std::cerr<<"render_rectangle with texture: "<<texture_number<<" dst_x: "<<dst_x<<" dst_y"<<dst_y<<" src_width"<< src_width<<" src_height: "<<src_height<<" tex_width: "<<tex_width<<" tex_height: "<<tex_height<<" invert: "<<invert<<std::endl;
-#endif
   LOGINFO("render_rectangle(%d,%d,%d,%d,%d,%d,%d,%d)",texture_number,dst_x,dst_y,src_width,src_height,tex_width,tex_height,invert);
   int vertexOffset_location;
   int textureSizes_location;
@@ -1451,7 +1448,6 @@ static void render_rectangle(int texture_number,
 
 void reloadTexture()
 {
-  //std::cerr<<"reloadTexture BAILING due to use_fbo: "<<use_fbo<<" or !render_to_texture:"<<!render_to_texture<<" or buffer_cleared"<<buffer_cleared<<std::endl;
   if (use_fbo || !render_to_texture || buffer_cleared)
     return;
 
@@ -1487,7 +1483,6 @@ void updateTexture()
 
     // nothing changed, don't update the texture
     if (!buffer_cleared) {
-      std::cerr<<"updateTexture BAILING due to !buffer_cleared: "<<!buffer_cleared<<std::endl;
       LOG("update cancelled\n", pBufferAddress);
       return;
     }
@@ -1740,7 +1735,6 @@ FX_ENTRY void FX_CALL
 grBufferSwap( FxU32 swap_interval )
 {
 
-  std::cerr<<"grBufferSwap..."<<std::endl;
 //   GLuint program;
 
   vbo_draw();
@@ -1758,11 +1752,9 @@ grBufferSwap( FxU32 swap_interval )
   //printf("swap\n");
   if (render_to_texture) {
     display_warning("swap while render_to_texture\n");
-    std::cerr<<"BAILING On grBufferswap due to render_to_texture"<<std::endl;
     return;
   }
 
-  std::cerr<<"grBufferSwap... about to invoke CoreVideo_GL_SwapBuffers..."<<std::endl;
   CoreVideo_GL_SwapBuffers();
   for (i = 0; i < nb_fb; i++)
     fbs[i].buff_clear = 1;

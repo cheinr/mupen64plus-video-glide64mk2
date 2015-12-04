@@ -617,10 +617,6 @@ EXPORT void CALL ProcessDList(void)
 {
   SoftLocker lock(mutexProcessDList);
 
-#if EMSCRIPTEN
-  EM_ASM_INT({var i = $0|0;console.error("ProcessDList: ",i);},0);
-#endif
-
 #if (!EMSCRIPTEN)
 #ifdef USE_FRAMESKIPPER
   if (frameSkipper.willSkipNext() || !lock.IsOk()) //mutex is busy

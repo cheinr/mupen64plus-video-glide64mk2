@@ -2046,7 +2046,6 @@ EXPORT void CALL ShowCFB (void)
 
 EXPORT void CALL SetRenderingCallback(void (*callback)(int))
 {
-  std::cerr<<"SetRenderingCallback"<<std::endl;
   VLOG("CALL SetRenderingCallback (*)\n");
     renderCallback = callback;
 }
@@ -2054,7 +2053,6 @@ EXPORT void CALL SetRenderingCallback(void (*callback)(int))
 void drawViRegBG()
 {
   LRDP("drawViRegBG\n");
-  std::cerr<<"drawViRegBG"<<std::endl;
   const wxUint32 VIwidth = *gfx.VI_WIDTH_REG;
   FB_TO_SCREEN_INFO fb_info;
   fb_info.width  = VIwidth;
@@ -2118,7 +2116,6 @@ output:   none
 wxUint32 update_screen_count = 0;
 EXPORT void CALL UpdateScreen (void)
 {
-  std::cerr<<"UpdateScreen invoked in Glide64"<<std::endl;
 #ifdef USE_FRAMESKIPPER
   frameSkipper.update();
 #endif
@@ -2431,7 +2428,6 @@ void newSwapBuffers()
 
   if (settings.frame_buffer & fb_read_back_to_screen)
   {
-    std::cerr<<"invoking drawWhoeframebuffertoscreen"<<std::endl;
     DrawWholeFrameBufferToScreen();
   }
 
@@ -2439,7 +2435,6 @@ void newSwapBuffers()
   {
     if (fb_hwfbe_enabled && !(settings.hacks&hack_RE2) && !evoodoo)
       grAuxBufferExt( GR_BUFFER_AUXBUFFER );
-      std::cerr<<"invoking grBufferSwap"<<std::endl;
     grBufferSwap (settings.vsync);
     fps_count ++;
     if (*gfx.VI_STATUS_REG&0x08) //gamma correction is used
@@ -2493,7 +2488,6 @@ void newSwapBuffers()
 
   if (settings.frame_buffer & fb_read_back_to_screen2)
   {
-    std::cerr<<"invoking 2nd DrawWholeFrameBufferToScreen"<<std::endl;
     DrawWholeFrameBufferToScreen();
   }
   frame_count ++;
