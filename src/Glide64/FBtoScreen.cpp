@@ -308,7 +308,7 @@ static void DrawFrameBufferToScreen256(FB_TO_SCREEN_INFO & fb_info)
 
 bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
 {
-  std::cerr<<"DrawFrameBufferToScreen"<<std::endl;
+  //std::cerr<<"DrawFrameBufferToScreen"<<std::endl;
   if (fb_info.width < 200 || fb_info.size < 2)
   {
     std::cerr<<"DrawFrameBufferToScreen BAILING because fb_info.size wrong?"<<std::endl;
@@ -453,7 +453,7 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
   }
   else
   {
-    std::cerr<<"Actually drawing the buffer as two triangles!"<<std::endl;
+    //std::cerr<<"Actually drawing the buffer as two triangles!"<<std::endl;
     float ul_x = fb_info.ul_x * rdp.scale_x + rdp.offset_x;
     float ul_y = fb_info.ul_y * rdp.scale_y + rdp.offset_y;
     float lr_x = fb_info.lr_x * rdp.scale_x + rdp.offset_x;

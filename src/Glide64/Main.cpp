@@ -379,8 +379,8 @@ void ReadSettings ()
   settings.polygon_offset_units = Config_ReadFloat("polygon_offset_units", "Is multiplied by an implementation-specific value to create a constant depth offset", 0.0f);
 
 #ifdef USE_FRAMESKIPPER
-  settings.autoframeskip = (BOOL)Config_ReadInt("autoframeskip", "If true, skip up to maxframeskip frames to maintain clock schedule; if false, skip exactly maxframeskip frames", 0, TRUE, TRUE);
-  settings.maxframeskip = Config_ReadInt("maxframeskip", "If autoframeskip is true, skip up to this many frames to maintain clock schedule; if autoframeskip is false, skip exactly this many frames", 0, TRUE, FALSE);
+  settings.autoframeskip = (BOOL)Config_ReadInt("autoframeskip", "If true, skip up to maxframeskip frames to maintain clock schedule; if false, skip exactly maxframeskip frames", 1, TRUE, TRUE);
+  settings.maxframeskip = Config_ReadInt("maxframeskip", "If autoframeskip is true, skip up to this many frames to maintain clock schedule; if autoframeskip is false, skip exactly this many frames", 10, TRUE, FALSE);
   if( settings.autoframeskip )
     frameSkipper.setSkips( FrameSkipper::AUTO, settings.maxframeskip );
   else
@@ -413,7 +413,7 @@ void ReadSettings ()
   settings.wireframe = (BOOL)Config_ReadInt ("wireframe", "Wireframe display", 0);
   settings.wfmode = (int)Config_ReadInt ("wfmode", "Wireframe mode: 0=Normal colors, 1=Vertex colors, 2=Red only", 1, TRUE, FALSE);
 
-#if EMSCRIPTEN
+#if 0 //EMSCRIPTEN
   settings.logging = (BOOL)Config_ReadInt ("logging", "Logging", 1);
 #else
   settings.logging = (BOOL)Config_ReadInt ("logging", "Logging", 0);

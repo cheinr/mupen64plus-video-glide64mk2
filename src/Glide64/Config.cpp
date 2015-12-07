@@ -23,6 +23,10 @@
 #include "m64p.h"
 #include "rdp.h"
 
+#if EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 static m64p_handle video_general_section;
 static m64p_handle video_glide64_section;
 
@@ -34,10 +38,22 @@ BOOL Config_Open()
         ERRLOG("Could not open configuration");
         return FALSE;
     }
-    ConfigSetDefaultBool(video_general_section, "Fullscreen", false, "Use fullscreen mode if True, or windowed mode if False");
-    ConfigSetDefaultBool(video_general_section, "VerticalSync", true, "If true, prevent frame tearing by waiting for vsync before swapping");
+#if (!EMSCRIPTEN)
     ConfigSetDefaultInt(video_general_section, "ScreenWidth", 640, "Width of output window or fullscreen width");
     ConfigSetDefaultInt(video_general_section, "ScreenHeight", 480, "Height of output window or fullscreen height");
+#else
+    int screenWidth = EM_ASM_INT_V({
+      return window.innerWidth;
+    });
+    int screenHeight = EM_ASM_INT_V({
+      return window.innerHeight;
+    });
+    ConfigSetDefaultInt(video_general_section, "ScreenWidth", screenWidth, "Width of output window or fullscreen width");
+    ConfigSetDefaultInt(video_general_section, "ScreenHeight", screenHeight, "Height of output window or fullscreen height");
+#endif
+    ConfigSetDefaultBool(video_general_section, "Fullscreen", false, "Use fullscreen mode if True, or windowed mode if False");
+    ConfigSetDefaultBool(video_general_section, "VerticalSync", true, "If true, prevent frame tearing by waiting for vsync before swapping");
+
     ConfigSetDefaultInt(video_glide64_section, "wrpAntiAliasing", 0, "Enable full-scene anti-aliasing by setting this to a value greater than 1");
     ConfigSetDefaultInt(video_general_section, "Rotate", 0, "Rotate screen contents: 0=0 degree, 1=90 degree, 2 = 180 degree, 3=270 degree");
 
