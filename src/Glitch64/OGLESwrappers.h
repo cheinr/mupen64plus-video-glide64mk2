@@ -1,6 +1,5 @@
 void vbo_draw();
 
-#if (!EMSCRIPTEN)
 static GLenum cached_ActiveTexture_texture;
 void inline cache_glActiveTexture (GLenum texture)
 {
@@ -358,5 +357,3 @@ void inline cache_glViewport (GLint x, GLint y, GLsizei width, GLsizei height)
   }
 }
 #define glViewport(x, y, width, height) cache_glViewport(x, y, width, height)
-
-#endif //(!EMSCRIPTEN)

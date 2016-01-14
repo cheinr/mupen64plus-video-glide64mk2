@@ -1387,12 +1387,6 @@ static void render_rectangle(int texture_number,
 
   vbo_disable();
 
-#if EMSCRIPTEN
-  GLuint    vertexBuffer;
-  glGenBuffers(1, &vertexBuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float)*4*4, (void*)&data[0], GL_STATIC_DRAW);
-#endif
   glDisableVertexAttribArray(COLOUR_ATTR);
   glDisableVertexAttribArray(TEXCOORD_1_ATTR);
   glDisableVertexAttribArray(FOG_ATTR);
@@ -1408,10 +1402,6 @@ static void render_rectangle(int texture_number,
   disable_textureSizes();
 
   glDrawArrays(GL_TRIANGLE_STRIP,0,4);
-
-#if EMSCRIPTEN
-    glDeleteBuffers(1, &vertexBuffer);
-#endif
 
   vbo_enable();
 

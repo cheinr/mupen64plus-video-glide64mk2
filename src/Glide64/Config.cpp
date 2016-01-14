@@ -42,6 +42,7 @@ BOOL Config_Open()
     ConfigSetDefaultInt(video_general_section, "ScreenWidth", 640, "Width of output window or fullscreen width");
     ConfigSetDefaultInt(video_general_section, "ScreenHeight", 480, "Height of output window or fullscreen height");
 #else
+    // For web platform, fetch window inner width, height via inline javascript.
     int screenWidth = EM_ASM_INT_V({
       return window.innerWidth;
     });
@@ -136,5 +137,3 @@ wxUint32 texhirs[] = {
   //  JABO_HIRESTEXTURES, //"Jabo format"
 };
 #endif
-
-

@@ -387,11 +387,7 @@ void ReadSettings ()
     frameSkipper.setSkips( FrameSkipper::MANUAL, settings.maxframeskip );
 #endif
 
-#if EMSCRIPTEN_HACK
-  settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 0);
-#else
   settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 1);
-#endif
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
   //settings.fast_crc = (BOOL)Config_ReadInt ("fast_crc", "Fast CRC", 0);
 
@@ -413,11 +409,7 @@ void ReadSettings ()
   settings.wireframe = (BOOL)Config_ReadInt ("wireframe", "Wireframe display", 0);
   settings.wfmode = (int)Config_ReadInt ("wfmode", "Wireframe mode: 0=Normal colors, 1=Vertex colors, 2=Red only", 1, TRUE, FALSE);
 
-#if 0 //EMSCRIPTEN
-  settings.logging = (BOOL)Config_ReadInt ("logging", "Logging", 1);
-#else
   settings.logging = (BOOL)Config_ReadInt ("logging", "Logging", 0);
-#endif
   settings.log_clear = (BOOL)Config_ReadInt ("log_clear", "", 0);
 
   settings.run_in_window = (BOOL)Config_ReadInt ("run_in_window", "", 0);
@@ -526,10 +518,6 @@ void ReadSettings ()
 
 void ReadSpecialSettings (const char * name)
 {
-
-#if 0 //EMSCRIPTEN
-  return;
-#endif
   //  char buf [256];
   //  sprintf(buf, "ReadSpecialSettings. Name: %s\n", name);
   //  LOG(buf);
@@ -1361,12 +1349,10 @@ int InitGfx ()
   grBufferSwap (0);
   grBufferClear (0, 0, 0xFFFF);
   grDepthMask (FXFALSE);
-#if (!EMSCRIPTEN_HACK)
   grTexFilterMode (0, GR_TEXTUREFILTER_BILINEAR, GR_TEXTUREFILTER_BILINEAR);
   grTexFilterMode (1, GR_TEXTUREFILTER_BILINEAR, GR_TEXTUREFILTER_BILINEAR);
   grTexClampMode (0, GR_TEXTURECLAMP_CLAMP, GR_TEXTURECLAMP_CLAMP);
   grTexClampMode (1, GR_TEXTURECLAMP_CLAMP, GR_TEXTURECLAMP_CLAMP);
-#endif
   grClipWindow (0, 0, settings.scr_res_x, settings.scr_res_y);
   rdp.update |= UPDATE_SCISSOR | UPDATE_COMBINE | UPDATE_ZBUF_ENABLED | UPDATE_CULL_MODE;
 
@@ -1601,14 +1587,8 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     }
     else
     {
-#if (!EMSCRIPTEN_HACK)
         ERRLOG("Couldn't find Glide64mk2.ini");
         return M64ERR_FILES;
-#else
-        // teething issues with emscripten and boost::filesystem
-        // ignoring ini file for now.
-        return M64ERR_SUCCESS;
-#endif
     }
 }
 
@@ -2178,13 +2158,8 @@ EXPORT void CALL UpdateScreen (void)
     }
     return;
   }
-#if (!EMSCRIPTEN_HACK)
-  //*/
   if (settings.swapmode == 0)
     newSwapBuffers ();
-#else
-  newSwapBuffers();
-#endif
 }
 
 static void DrawWholeFrameBufferToScreen()

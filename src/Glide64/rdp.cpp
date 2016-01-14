@@ -56,10 +56,6 @@
 extern FrameSkipper frameSkipper;
 #endif
 
-#if EMSCRIPTEN
-#include "emscripten.h"
-#endif
-
 /*
 const int NumOfFormats = 3;
 SCREEN_SHOT_FORMAT ScreenShotFormats[NumOfFormats] = { {wxT("BMP"), wxT("bmp"), wxBITMAP_TYPE_BMP}, {wxT("PNG"), wxT("png"), wxBITMAP_TYPE_PNG}, {wxT("JPEG"), wxT("jpeg"), wxBITMAP_TYPE_JPEG} };
@@ -566,6 +562,7 @@ public:
 #if (!EMSCRIPTEN)
   _isOk = ( SDL_SemTryWait(_mutex) == 0 );
 #else
+  // no blocking operations on web platform.
   _isOk = true;
 #endif
   }
@@ -616,7 +613,7 @@ extern "C" {
 EXPORT void CALL ProcessDList(void)
 {
   SoftLocker lock(mutexProcessDList);
-
+// this frameskipper will not work on nonblocking web platform
 #if (!EMSCRIPTEN)
 #ifdef USE_FRAMESKIPPER
   if (frameSkipper.willSkipNext() || !lock.IsOk()) //mutex is busy
@@ -624,10 +621,6 @@ EXPORT void CALL ProcessDList(void)
   if (!lock.IsOk()) //mutex is busy
 #endif
   {
-    #if EMSCRIPTEN
-      EM_ASM_INT({var i = $0|0;console.error("ProcessDList BAILING bcz mutex notOK. ",i);},0);
-    #endif
-
     if (!fullscreen)
       drawNoFullscreenMessage();
     // Set an interrupt to allow the game to continue

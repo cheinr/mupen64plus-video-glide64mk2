@@ -31,13 +31,6 @@
 #define Z_MAX (65536.0f)
 #define VERTEX_SIZE sizeof(VERTEX) //Size of vertex struct
 
-#if EMSCRIPTEN
-#include "emscripten.h"
-#include <iostream>
-
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-#endif
-
 static int xy_off;
 static int xy_en;
 static int z_en;
@@ -62,80 +55,19 @@ static VERTEX vertex_buffer[VERTEX_BUFFER_SIZE];
 static int vertex_buffer_count = 0;
 static GLenum vertex_draw_mode;
 static bool vertex_buffer_enabled = false;
-#if EMSCRIPTEN
-GLuint gles2_vbo = -1;
-#endif
 
 void vbo_init()
 {
-#if EMSCRIPTEN
-  glGenBuffers(1, &gles2_vbo);
-#endif
 }
 
 void vbo_draw()
 {
-  
+
   if(vertex_buffer_count)
   {
-
-#if EMSCRIPTEN
-
-    if(gles2_vbo<0)
-    {
-      glGenBuffers(1, &gles2_vbo);
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, gles2_vbo);
-
-#if 0 //DEBUG_BUFFER_DATA
-    if(vertex_buffer_count == 6)
-    {
-      for(int i=0;i<6;++i)
-      {
-        VERTEX* v = &(vertex_buffer[i]);
-        std::cerr<<"v"<<i<<": "<<v->x<<","<<v->y<<","<<v->z<<std::endl;
-      }
-    }
-#endif //DEBUG_BUFFER_DATA
-#endif //EMSCRIPTEN
-
-#if EMSCRIPTEN
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTEX)*vertex_buffer_count, vertex_buffer, GL_DYNAMIC_DRAW);
-
-    glEnableVertexAttribArray(POSITION_ATTR);
-    unsigned int posOffset = 0;
-    glVertexAttribPointer(POSITION_ATTR, 4, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(0)); //Position
-    
-    glEnableVertexAttribArray(COLOUR_ATTR);
-    unsigned int colorOffset = (char*)&vertex_buffer[0].b - (char*)vertex_buffer;
-    glVertexAttribPointer(COLOUR_ATTR, 4, GL_UNSIGNED_BYTE, true, VERTEX_SIZE, BUFFER_OFFSET(colorOffset)); //Colou
-    
-
-    glEnableVertexAttribArray(TEXCOORD_0_ATTR);
-    unsigned int tex0Offset = &vertex_buffer[0].coord[2] - (float*)vertex_buffer;
-    glVertexAttribPointer(TEXCOORD_0_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(tex0Offset*4)); //Tex0
-    
-
-    glEnableVertexAttribArray(TEXCOORD_1_ATTR);
-    unsigned int tex1Offset = &vertex_buffer[0].coord[0] - (float*)vertex_buffer;
-    glVertexAttribPointer(TEXCOORD_1_ATTR, 2, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(tex1Offset*4)); //Tex1
-    
-
-    glEnableVertexAttribArray(FOG_ATTR);
-    unsigned int foxOffset = &vertex_buffer[0].f - (float*)vertex_buffer;
-    glVertexAttribPointer(FOG_ATTR, 1, GL_FLOAT, false, VERTEX_SIZE, BUFFER_OFFSET(foxOffset*4)); //Fog
-
-
-#endif //EMSCRIPTEN
-
     glDrawArrays(vertex_draw_mode,0,vertex_buffer_count);
 
     vertex_buffer_count = 0;
-
-#if EMSCRIPTEN
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-#endif
   }
 }
 

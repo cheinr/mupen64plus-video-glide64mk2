@@ -47,10 +47,6 @@
 #include "FBtoScreen.h"
 #include "TexCache.h"
 
-#if EMSCRIPTEN
-#include "emscripten.h"
-#endif
-
 static int SetupFBtoScreenCombiner(wxUint32 texture_size, wxUint32 opaque)
 {
   int tmu;
@@ -350,11 +346,6 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     t_info.aspectRatioLog2 = GR_ASPECT_LOG2_1x1;
   }
 
-#if 0 //EMSCRIPTEN
-  // foring size=3 for actual Rendering
-  fb_info.size = 3;
-#endif
-
   if (fb_info.size == 2)
   {
     wxUint16 * tex = (wxUint16*)texture_buffer;
@@ -373,9 +364,6 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
         if (idx >= bound)
           break;
         c = src[idx];
-#if 0 //EMSCRIPTEN
-        c = 0xff00ffff;
-#endif
         if (c) empty = false;
         *(dst++) = (c >> 1) | ((c&1)<<15);
       }
@@ -409,11 +397,7 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
         if (idx >= bound)
           break;
         col = src[idx];
-#if 0 //EMSCRIPTEN
-        *(dst++) = 0xFF0FF0FF;
-#else
         *(dst++) = (col >> 8) | 0xFF000000;
-#endif
       }
       dst += texwidth-width;
     }
@@ -421,21 +405,7 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     t_info.data = tex;
   }
 
-
-
-// #if EMSCRIPTEN
-//     grTexDownloadMipMap (tmu,
-//       voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
-//       GR_MIPMAPLEVELMASK_BOTH,
-//       &t_info);
-//     grTexSource (tmu,
-//       voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
-//       GR_MIPMAPLEVELMASK_BOTH,
-//       &t_info);
-// #endif
-
   int tmu = SetupFBtoScreenCombiner(grTexTextureMemRequired(GR_MIPMAPLEVELMASK_BOTH, &t_info), fb_info.opaque);
-//#if (!EMSCRIPTEN)
   grTexDownloadMipMap (tmu,
     voodoo.tex_min_addr[tmu]+voodoo.tmem_ptr[tmu],
     GR_MIPMAPLEVELMASK_BOTH,
@@ -446,7 +416,6 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     &t_info);
 
     tmu = SetupFBtoScreenCombiner(grTexTextureMemRequired(GR_MIPMAPLEVELMASK_BOTH, &t_info), fb_info.opaque);
-//#endif
   if (settings.hacks&hack_RE2)
   {
     DrawRE2Video(fb_info, scale);
