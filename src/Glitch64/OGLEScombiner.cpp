@@ -321,6 +321,8 @@ void init_combiner()
   glBindTexture(GL_TEXTURE_2D, default_texture);
   glTexImage2D(GL_TEXTURE_2D, 0, 3, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
 #else
+
+  /*
   EM_ASM_INT({
     var id = $0|0;
     if(!Module.texHandles)
@@ -343,6 +345,8 @@ void init_combiner()
     }
   },
     default_texture);
+
+  */
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
 #endif
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1839,6 +1843,9 @@ static void setPattern()
   glBindTexture(GL_TEXTURE_2D, 33*1024*1024);
   glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
 #else
+
+
+  /*
 EM_ASM_INT({
   var id = $0|0;
   if(!Module.texHandles)
@@ -1861,6 +1868,8 @@ EM_ASM_INT({
   }
 },
   33*1024*1024);
+
+ */
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
 #endif
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

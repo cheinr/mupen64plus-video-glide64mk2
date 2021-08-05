@@ -135,12 +135,12 @@ BOOST_SUFFIX ?=
 
 # overrrides for EMSCRIPTEN platform
 ifneq ($(EMSCRIPTEN),1)
-  CFLAGS += -DGCC
+  CFLAGS += -DGCC 
   CXXFLAGS += -std=gnu++0x
 endif
 
 ifeq ($(CPU), X86)
-  CFLAGS +=  -mmmx -msse
+  CFLAGS +=  -mmmx
 endif
 
 # Since we are building a shared library, we must compile with -fPIC on some architectures
@@ -182,7 +182,7 @@ ifeq ($(OS), OSX)
     ifeq ($(ARCH_DETECTED), 64BITS)
       CFLAGS += -pipe -I /opt/local/include -arch x86_64 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     else
-      CFLAGS += -pipe -I /opt/local/include -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
+      CFLAGS += -pipe -I /opt/local/include -mmmx -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     endif
   endif
 endif
@@ -310,6 +310,7 @@ else
 CC        = $(CROSS_COMPILE)gcc
 CXX       = $(CROSS_COMPILE)g++
 endif
+AR	  = ar
 RM       ?= rm -f
 INSTALL  ?= install
 MKDIR ?= mkdir -p
@@ -329,6 +330,8 @@ endif
 ifeq ($(NO_ASM), 1)
   CFLAGS += -DNO_ASM
 endif
+
+CFLAGS += -DNOSSE
 ifeq ($(NO_SSE), 1)
   CFLAGS += -DNOSSE
 endif
@@ -412,7 +415,7 @@ SOURCE += \
 
 #CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
 CPPFLAGS += -DTEXTURE_FILTER
-LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
+# LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
 ifneq ($(EMSCRIPTEN),1)
   CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
 endif
@@ -442,6 +445,7 @@ $(shell $(MKDIR) $(OBJDIRS))
 
 # build targets
 TARGET = mupen64plus-video-glide64mk2$(POSTFIX).$(SO_EXTENSION)
+TARGET_STATIC = mupen64plus-video-glide64mk2$(POSTFIX).a
 
 targets:
 	@echo "Mupen64plus-video-glide64mk2 N64 Graphics plugin makefile. "
@@ -475,7 +479,7 @@ targets:
 	@echo "    DEBUG=1       == add debugging symbols"
 	@echo "    V=1           == show verbose compiler output"
 
-all: $(TARGET)
+all: $(TARGET) $(TARGET_STATIC)
 
 install: $(TARGET)
 	$(INSTALL) -d "$(DESTDIR)$(PLUGINDIR)"
@@ -507,5 +511,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 
 $(TARGET): $(OBJECTS)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+$(TARGET_STATIC): $(OBJECTS)
+	$(AR) rcs $@ $^
 
 .PHONY: all clean install uninstall targets

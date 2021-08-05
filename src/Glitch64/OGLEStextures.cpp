@@ -652,6 +652,7 @@ grTexDownloadMipMap( GrChipID_t tmu,
 #if (!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, startAddress+1);
 #else
+  /*
 EM_ASM_INT({
   var id = $0|0;
   if(!Module.texHandles)
@@ -674,6 +675,7 @@ EM_ASM_INT({
   }
 },
   startAddress+1);
+  */
 #endif
 
   if (largest_supported_anisotropy > 1.0f)
@@ -699,6 +701,7 @@ EM_ASM_INT({
 #if (!EMSCRIPTEN)
   glBindTexture(GL_TEXTURE_2D, default_texture);
 #else
+  /*
   EM_ASM_INT({
     var id = $0|0;
     if(!Module.texHandles)
@@ -721,6 +724,8 @@ EM_ASM_INT({
     }
   },
     default_texture);
+
+  */
   #endif
 }
 
@@ -752,6 +757,8 @@ grTexSource( GrChipID_t tmu,
 #if (!EMSCRIPTEN)
     glBindTexture(GL_TEXTURE_2D, startAddress+1);
 #else
+
+    /*
 EM_ASM_INT({
     var id = $0|0;
     if(!Module.texHandles)
@@ -774,6 +781,7 @@ EM_ASM_INT({
     }
   },
     startAddress+1);
+    */
 #endif
 
 #ifdef VPDEBUG
@@ -809,6 +817,8 @@ EM_ASM_INT({
 #if (!EMSCRIPTEN)
     glBindTexture(GL_TEXTURE_2D, startAddress+1);
 #else
+
+    /*
     EM_ASM_INT({
         var id = $0|0;
         if(!Module.texHandles)
@@ -831,6 +841,7 @@ EM_ASM_INT({
         }
       },
         startAddress+1);
+    */
 #endif
 
 #ifdef VPDEBUG

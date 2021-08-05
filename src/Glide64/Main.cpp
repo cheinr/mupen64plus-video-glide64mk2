@@ -37,6 +37,10 @@
 //
 //****************************************************************
 
+#ifdef M64P_STATIC_PLUGINS
+#define M64P_CORE_PROTOTYPES 1
+#endif
+
 #include "Gfx_1.3.h"
 #include "Ini.h"
 #include "Config.h"
@@ -49,7 +53,6 @@
 #include "FBtoScreen.h"
 #include "DepthBufferRender.h"
 
-
 #if defined(__GNUC__)
 #include <sys/time.h>
 #elif defined(__MSC__)
@@ -59,7 +62,9 @@
 #ifndef PATH_MAX
   #define PATH_MAX 4096
 #endif
+#if (!M64P_STATIC_PLUGINS)
 #include "osal_dynamiclib.h"
+#endif
 #ifdef TEXTURE_FILTER // Hiroshi Morii <koolsmoky@users.sourceforge.net>
 #include <stdarg.h>
 int  ghq_dmptex_toggle_key = 0;
@@ -68,6 +73,7 @@ int  ghq_dmptex_toggle_key = 0;
 #define swprintf _snwprintf
 #define vswprintf _vsnwprintf
 #endif
+
 
 #define G64_VERSION "G64 Mk2"
 
@@ -89,8 +95,9 @@ int elog_open = FALSE;
 std::ofstream rdp_err;
 #endif
 
-GFX_INFO gfx;
+GFX_INFO gfxInfo;
 
+#if (!M64P_STATIC_PLUGINS)
 /* definitions of pointers to Core config functions */
 ptr_ConfigOpenSection      ConfigOpenSection = NULL;
 ptr_ConfigSetParameter     ConfigSetParameter = NULL;
@@ -121,6 +128,9 @@ ptr_VidExt_ResizeWindow          CoreVideo_ResizeWindow = NULL;
 ptr_VidExt_GL_GetProcAddress     CoreVideo_GL_GetProcAddress = NULL;
 ptr_VidExt_GL_SetAttribute       CoreVideo_GL_SetAttribute = NULL;
 ptr_VidExt_GL_SwapBuffers        CoreVideo_GL_SwapBuffers = NULL;
+
+#endif
+
 int to_fullscreen = FALSE;
 int fullscreen = FALSE;
 int romopen = FALSE;
@@ -209,22 +219,22 @@ void _ChangeSize ()
 //  float res_scl_x = (float)settings.res_x / 320.0f;
   float res_scl_y = (float)settings.res_y / 240.0f;
 
-  wxUint32 scale_x = *gfx.VI_X_SCALE_REG & 0xFFF;
+  wxUint32 scale_x = *gfxInfo.VI_X_SCALE_REG & 0xFFF;
   if (!scale_x) return;
-  wxUint32 scale_y = *gfx.VI_Y_SCALE_REG & 0xFFF;
+  wxUint32 scale_y = *gfxInfo.VI_Y_SCALE_REG & 0xFFF;
   if (!scale_y) return;
 
   float fscale_x = (float)scale_x / 1024.0f;
   float fscale_y = (float)scale_y / 2048.0f;
 
-  wxUint32 dwHStartReg = *gfx.VI_H_START_REG;
-  wxUint32 dwVStartReg = *gfx.VI_V_START_REG;
+  wxUint32 dwHStartReg = *gfxInfo.VI_H_START_REG;
+  wxUint32 dwVStartReg = *gfxInfo.VI_V_START_REG;
 
   wxUint32 hstart = dwHStartReg >> 16;
   wxUint32 hend = dwHStartReg & 0xFFFF;
 
   // dunno... but sometimes this happens
-  if (hend == hstart) hend = (int)(*gfx.VI_WIDTH_REG / fscale_x);
+  if (hend == hstart) hend = (int)(*gfxInfo.VI_WIDTH_REG / fscale_x);
 
   wxUint32 vstart = dwVStartReg >> 16;
   wxUint32 vend = dwVStartReg & 0xFFFF;
@@ -255,7 +265,7 @@ void _ChangeSize ()
   //rdp.offset_x = 0;
   //  rdp.offset_y = 0;
   rdp.offset_y = ((float)settings.res_y - rdp.vi_height * rdp.scale_y) * 0.5f;
-  if (((wxUint32)rdp.vi_width <= (*gfx.VI_WIDTH_REG)/2) && (rdp.vi_width > rdp.vi_height))
+  if (((wxUint32)rdp.vi_width <= (*gfxInfo.VI_WIDTH_REG)/2) && (rdp.vi_width > rdp.vi_height))
     rdp.scale_y *= 0.5f;
 
   rdp.scissor_o.ul_x = 0;
@@ -1185,6 +1195,8 @@ int InitGfx ()
     char strSstWinOpenExt[] ="grSstWinOpenExt";
     GRWINOPENEXT grSstWinOpenExt = (GRWINOPENEXT)grGetProcAddress(strSstWinOpenExt);
     if (grSstWinOpenExt)
+
+      printf("grSstWinOpenExt\n");
       gfx_context = grSstWinOpenExt ((FxU32)NULL,
       res_data,
       GR_REFRESH_60Hz,
@@ -1195,6 +1207,7 @@ int InitGfx ()
       1);   // 1 auxillary buffer
   }
   if (!gfx_context)
+    printf("grSstWinOpen\n");
     gfx_context = grSstWinOpen ((FxU32)NULL,
     res_data,
     GR_REFRESH_60Hz,
@@ -1504,7 +1517,13 @@ EXPORT void CALL ReadScreen2(void *dest, int *width, int *height, int front)
   }
 }
 
-EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context,
+EXPORT m64p_error CALL
+#if M64P_STATIC_PLUGINS
+PluginStartupVideo
+#else
+PluginStartup
+#endif
+(m64p_dynlib_handle CoreLibHandle, void *Context,
                                    void (*DebugCallback)(void *, int, const char *))
 {
   VLOG("CALL PluginStartup ()\n");
@@ -1513,7 +1532,13 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
 
     /* attach and call the CoreGetAPIVersions function, check Config and Video Extension API versions for compatibility */
     ptr_CoreGetAPIVersions CoreAPIVersionFunc;
+
+#if M64P_STATIC_PLUGINS
+    CoreAPIVersionFunc = &CoreGetAPIVersions;
+#else
     CoreAPIVersionFunc = (ptr_CoreGetAPIVersions) osal_dynlib_getproc(CoreLibHandle, "CoreGetAPIVersions");
+#endif
+
     if (CoreAPIVersionFunc == NULL)
     {
         ERRLOG("Core emulator broken; no CoreAPIVersionFunc() function found.");
@@ -1532,6 +1557,7 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
         return M64ERR_INCOMPATIBLE;
     }
 
+#if (!M64P_STATIC_PLUGINS)
     ConfigOpenSection = (ptr_ConfigOpenSection) osal_dynlib_getproc(CoreLibHandle, "ConfigOpenSection");
     ConfigSetParameter = (ptr_ConfigSetParameter) osal_dynlib_getproc(CoreLibHandle, "ConfigSetParameter");
     ConfigGetParameter = (ptr_ConfigGetParameter) osal_dynlib_getproc(CoreLibHandle, "ConfigGetParameter");
@@ -1577,6 +1603,7 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
         ERRLOG("Couldn't connect to Core video functions");
         return M64ERR_INCOMPATIBLE;
     }
+#endif //M64P_STATIC_PLUGINS
 
     const char *configDir = ConfigGetSharedDataFilepath("Glide64mk2.ini");
     if (configDir)
@@ -1592,13 +1619,24 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     }
 }
 
-EXPORT m64p_error CALL PluginShutdown(void)
+EXPORT m64p_error CALL
+#if M64P_STATIC_PLUGINS
+PluginShutdownVideo(void)
+#else
+PluginShutdown(void)
+#endif
 {
   VLOG("CALL PluginShutdown ()\n");
     return M64ERR_SUCCESS;
 }
 
-EXPORT m64p_error CALL PluginGetVersion(m64p_plugin_type *PluginType, int *PluginVersion, int *APIVersion, const char **PluginNamePtr, int *Capabilities)
+EXPORT m64p_error CALL
+#if M64P_STATIC_PLUGINS
+PluginGetVersionVideo
+#else
+PluginGetVersion
+#endif
+(m64p_plugin_type *PluginType, int *PluginVersion, int *APIVersion, const char **PluginNamePtr, int *Capabilities)
 {
 #if EMSCRIPTEN
   // Runtime issues with dynamically loaded libraries and static variable init
@@ -1796,7 +1834,7 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
 
   debug_init ();    // Initialize debugger
 
-  gfx = Gfx_Info;
+  gfxInfo = Gfx_Info;
 
   util_init ();
   math_init ();
@@ -1862,7 +1900,12 @@ Purpose:  This function is called when a rom is closed.
 input:    none
 output:   none
 *******************************************************************/
-EXPORT void CALL RomClosed (void)
+EXPORT void CALL
+#if M64P_STATIC_PLUGINS
+RomClosedVideo (void)
+#else
+RomClosed (void)
+#endif
 {
   VLOG ("RomClosed ()\n");
 
@@ -1879,7 +1922,7 @@ static void CheckDRAMSize()
   wxUint32 test;
   GLIDE64_TRY
   {
-    test = gfx.RDRAM[0x007FFFFF] + 1;
+    test = gfxInfo.RDRAM[0x007FFFFF] + 1;
   }
   GLIDE64_CATCH
   {
@@ -1902,7 +1945,12 @@ emulation thread)
 input:    none
 output:   none
 *******************************************************************/
-EXPORT int CALL RomOpen (void)
+EXPORT int CALL
+#if M64P_STATIC_PLUGINS
+RomOpenVideo (void)
+#else
+RomOpen (void)
+#endif
 {
   VLOG ("RomOpen ()\n");
   no_dlist = true;
@@ -1912,7 +1960,7 @@ EXPORT int CALL RomOpen (void)
 
   /* cxd4 -- Glide64 tries to predict PAL scaling based on the ROM header. */
   region = OS_TV_TYPE_NTSC; /* Invalid region codes are probably NTSC betas. */
-  switch (gfx.HEADER[0x3E ^ 3])
+  switch (gfxInfo.HEADER[0x3E ^ 3])
   {
      case 'A': /* generic NTSC, not documented, used by 1080 Snowboarding */
         region = OS_TV_TYPE_NTSC; break;
@@ -1961,7 +2009,7 @@ EXPORT int CALL RomOpen (void)
 
   // get the name of the ROM
   for (int i=0; i<20; i++)
-    name[i] = gfx.HEADER[(32+i)^3];
+    name[i] = gfxInfo.HEADER[(32+i)^3];
   name[20] = 0;
 
   // remove all trailing spaces
@@ -2033,7 +2081,7 @@ EXPORT void CALL SetRenderingCallback(void (*callback)(int))
 void drawViRegBG()
 {
   LRDP("drawViRegBG\n");
-  const wxUint32 VIwidth = *gfx.VI_WIDTH_REG;
+  const wxUint32 VIwidth = *gfxInfo.VI_WIDTH_REG;
   FB_TO_SCREEN_INFO fb_info;
   fb_info.width  = VIwidth;
   fb_info.height = (wxUint32)rdp.vi_height;
@@ -2049,8 +2097,8 @@ void drawViRegBG()
   fb_info.ul_y = 0;
   fb_info.lr_y = fb_info.height - 1;
   fb_info.opaque = 1;
-  fb_info.addr = *gfx.VI_ORIGIN_REG;
-  fb_info.size = *gfx.VI_STATUS_REG & 3;
+  fb_info.addr = *gfxInfo.VI_ORIGIN_REG;
+  fb_info.size = *gfxInfo.VI_STATUS_REG & 3;
   rdp.last_bg = fb_info.addr;
 
   bool drawn = DrawFrameBufferToScreen(fb_info);
@@ -2106,12 +2154,12 @@ EXPORT void CALL UpdateScreen (void)
   }
 #endif
   char out_buf[128];
-  sprintf (out_buf, "UpdateScreen (). Origin: %08x, Old origin: %08x, width: %d\n", *gfx.VI_ORIGIN_REG, rdp.vi_org_reg, *gfx.VI_WIDTH_REG);
+  sprintf (out_buf, "UpdateScreen (). Origin: %08x, Old origin: %08x, width: %d\n", *gfxInfo.VI_ORIGIN_REG, rdp.vi_org_reg, *gfxInfo.VI_WIDTH_REG);
   VLOG (out_buf);
   LRDP(out_buf);
 
-  wxUint32 width = (*gfx.VI_WIDTH_REG) << 1;
-  if (fullscreen && (*gfx.VI_ORIGIN_REG  > width))
+  wxUint32 width = (*gfxInfo.VI_WIDTH_REG) << 1;
+  if (fullscreen && (*gfxInfo.VI_ORIGIN_REG  > width))
     update_screen_count++;
 //TODO-PORT: wx times
 #ifdef FPS
@@ -2147,7 +2195,7 @@ EXPORT void CALL UpdateScreen (void)
   //*
   if( no_dlist )
   {
-    if( *gfx.VI_ORIGIN_REG  > width )
+    if( *gfxInfo.VI_ORIGIN_REG  > width )
     {
       ChangeSize ();
       LRDP("ChangeSize done\n");
@@ -2184,7 +2232,7 @@ static void DrawWholeFrameBufferToScreen()
   fb_info.opaque = 0;
   DrawFrameBufferToScreen(fb_info);
   if (!(settings.frame_buffer & fb_ref))
-    memset(gfx.RDRAM+rdp.cimg, 0, (rdp.ci_width*rdp.ci_height)<<rdp.ci_size>>1);
+    memset(gfxInfo.RDRAM+rdp.cimg, 0, (rdp.ci_width*rdp.ci_height)<<rdp.ci_size>>1);
 }
 
 static void GetGammaTable()
@@ -2412,7 +2460,7 @@ void newSwapBuffers()
       grAuxBufferExt( GR_BUFFER_AUXBUFFER );
     grBufferSwap (settings.vsync);
     fps_count ++;
-    if (*gfx.VI_STATUS_REG&0x08) //gamma correction is used
+    if (*gfxInfo.VI_STATUS_REG&0x08) //gamma correction is used
     {
       if (!voodoo.gamma_correction)
       {

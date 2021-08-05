@@ -18,6 +18,11 @@
 * Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 * Boston, MA  02110-1301, USA
 */
+
+#ifdef M64P_STATIC_PLUGINS
+#define M64P_CORE_PROTOTYPES 1
+#endif
+
 #include "Gfx_1.3.h"
 #include "Config.h"
 #include "m64p.h"
@@ -42,13 +47,21 @@ BOOL Config_Open()
     ConfigSetDefaultInt(video_general_section, "ScreenWidth", 640, "Width of output window or fullscreen width");
     ConfigSetDefaultInt(video_general_section, "ScreenHeight", 480, "Height of output window or fullscreen height");
 #else
+
+    
     // For web platform, fetch window inner width, height via inline javascript.
+    /*
     int screenWidth = EM_ASM_INT_V({
       return window.innerWidth;
     });
     int screenHeight = EM_ASM_INT_V({
       return window.innerHeight;
     });
+    */
+
+    int screenWidth = 640;
+    int screenHeight = 480;
+    
     ConfigSetDefaultInt(video_general_section, "ScreenWidth", screenWidth, "Width of output window or fullscreen width");
     ConfigSetDefaultInt(video_general_section, "ScreenHeight", screenHeight, "Height of output window or fullscreen height");
 #endif

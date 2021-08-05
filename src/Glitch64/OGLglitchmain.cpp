@@ -473,7 +473,6 @@ grSstWinOpen(
   default_texture = free_texture++;
   color_texture = free_texture++;
   depth_texture = free_texture++;
-
   LOG("grSstWinOpen(%08lx, %d, %d, %d, %d, %d %d)\r\n", hWnd, screen_resolution&~0x80000000, refresh_rate, color_format, origin_location, nColBuffers, nAuxBuffers);
 
 #ifdef _WIN32
@@ -503,6 +502,7 @@ grSstWinOpen(
   // ZIGGY viewport_offset is WIN32 specific, with SDL just set it to zero
   viewport_offset = 0; //-10 //-20;
 
+  printf("CoreVideo_Init()\n");
   CoreVideo_Init();
   CoreVideo_GL_SetAttribute(M64P_GL_DOUBLEBUFFER, 1);
   CoreVideo_GL_SetAttribute(M64P_GL_SWAP_CONTROL, vsync);
